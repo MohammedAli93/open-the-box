@@ -101,6 +101,14 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
     this.scene.tweens.add({ targets: this, scale: target, duration: 240, delay, ease: "Back.easeOut" });
   }
 
+  // Drops the card in from above into its laid-out position (source-style).
+  dropIn(delay: number) {
+    const targetY = this.y;
+    const drop = Math.max(this._h * 3, 260);
+    this.setPosition(this.x, targetY - drop).setAlpha(0);
+    this.scene.tweens.add({ targets: this, y: targetY, alpha: 1, duration: 300, delay, ease: "Back.easeOut" });
+  }
+
   private showMark(key: string) {
     if (!this.mark) {
       this.mark = this.scene.add.image(0, 0, key);
@@ -135,7 +143,7 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
     if (this.crumbleSprite) return;
     this.crumbleSprite = this.scene.add
       .sprite(0, 0, CRUMBLE.key, 0)
-      .setDisplaySize(this._w * 1.05, this._h * 1.05)
+      .setDisplaySize(this._w * 1.25, this._w * 1.25 * (154 / 200))
       .setDepth(ZOrder.FEEDBACK);
     this.add(this.crumbleSprite);
     this.crumbleSprite.play(CRUMBLE.anim);

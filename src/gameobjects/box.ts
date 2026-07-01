@@ -76,27 +76,32 @@ export class Box extends Phaser.GameObjects.Container {
     this.applySize(size);
   }
 
-  // Open: the cover folds up off the binding (scaleY → 0 from the top edge).
-  flipAway(): Promise<void> {
+  // Grid clears: this box slides down off the desk and fades (staggered).
+  slideOut(delay = 0): Promise<void> {
     return new Promise((resolve) => {
       this.scene.tweens.add({
-        targets: this.cover,
-        scaleY: 0,
-        duration: 260,
+        targets: this,
+        y: this.homeY + this.homeSize * 1.7,
+        alpha: 0,
+        angle: 6,
+        delay,
+        duration: 300,
         ease: "Back.easeIn",
         onComplete: () => resolve(),
       });
     });
   }
 
-  // Close: the cover folds back down over the pad.
-  flipBack(): Promise<void> {
-    this.cover.scaleY = 0;
+  // Grid reforms: this box slides back up to its home position.
+  slideIn(delay = 0): Promise<void> {
+    this.setPosition(this.homeX, this.homeY + this.homeSize * 1.7).setAlpha(0).setAngle(0);
     return new Promise((resolve) => {
       this.scene.tweens.add({
-        targets: this.cover,
-        scaleY: 1,
-        duration: 240,
+        targets: this,
+        y: this.homeY,
+        alpha: 1,
+        delay,
+        duration: 320,
         ease: "Back.easeOut",
         onComplete: () => resolve(),
       });

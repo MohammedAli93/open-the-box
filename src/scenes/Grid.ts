@@ -51,8 +51,9 @@ export class GridScene extends Scene {
     this.boxes.forEach((b, i) => b.popIn(i * 70));
 
     this.scene.launch("UI");
-    // Starts on the first user gesture (Phaser unlocks the audio context then).
-    AudioManager.startBGM(this.sound, "bgm");
+    // Show the Start screen over the paused grid; play resumes it (and starts BGM).
+    this.scene.launch("Title");
+    this.scene.pause();
   }
 
   private async openBox(box: Box, question: Question) {
@@ -60,58 +61,57 @@ export class GridScene extends Scene {
     this.busy = true;
     box.setScale(1, 1);
     this.boxes.forEach((b) => b.disableInteractive());
-    box.setDepth(ZOrder.BOX_LIFTED);
     AudioManager.playSFX(this.sound, "sfx-open");
 
-    await box.flipAway();
+    // The rest of the grid slides away (staggered); the clicked box hides so the
+    // classify notepad can grow out of its position.
+    const others = this.boxes.filter((b) => b !== box);
+    others.forEach((b, i) => b.slideOut(i * 22));
+    box.setVisible(false);
+    const origin = { x: box.homeX, y: box.homeY, size: box.homeSize };
+
+    await new Promise((r) => this.time.delayedCall(180, r));
 
     if (getMode(getGameData()) === "reveal") {
-      this.scene.launch("Reveal", {
-        index: box.index,
-        item: question,
-        onResolve: () => this.onRevealed(box),
-      });
+      this.scene.launch("Reveal", { index: box.index, item: question, origin, onResolve: () => this.onRevealed(box) });
     } else {
       this.scene.launch("Question", {
         index: box.index,
         question,
+        origin,
         onResolve: (choice: Choice | null) => this.onAnswered(box, question, choice),
       });
     }
     this.scene.pause();
   }
 
-  private async onRevealed(box: Box) {
-    this.scene.resume();
-    State.opened.add(box.index);
-    AudioManager.playSFX(this.sound, "sfx-correct");
-
-    await box.flipBack();
-    box.setDepth(ZOrder.BOX);
-    box.markOpened();
-
+  private closeBox(box: Box, markFn: (b: Box) => void) {
+    box.setVisible(true).setDepth(ZOrder.BOX);
+    markFn(box);
+    // The grid reforms: the other boxes slide back in.
+    this.boxes
+      .filter((b) => b !== box)
+      .forEach((b, i) => b.slideIn(i * 22));
     this.boxes.forEach((b) => {
       if (!b.answered) setInteractive(b, this.input);
     });
     this.busy = false;
+  }
+
+  private onRevealed(box: Box) {
+    this.scene.resume();
+    State.opened.add(box.index);
+    AudioManager.playSFX(this.sound, "sfx-correct");
+    this.closeBox(box, (b) => b.markOpened());
     this.checkComplete(State.opened.size);
   }
 
-  private async onAnswered(box: Box, question: Question, choice: Choice | null) {
+  private onAnswered(box: Box, question: Question, choice: Choice | null) {
     this.scene.resume();
     // choice === null means the per-question timer expired with no answer.
     const correct = choice ? isCorrectChoice(question, choice) : false;
     State.answers.set(box.index, { selectedContent: choice?.content ?? "", correct });
-
-    await box.flipBack();
-    box.setDepth(ZOrder.BOX);
-    box.markAnswered(correct);
-
-    // Re-enable the remaining boxes.
-    this.boxes.forEach((b) => {
-      if (!b.answered) setInteractive(b, this.input);
-    });
-    this.busy = false;
+    this.closeBox(box, (b) => b.markAnswered(correct));
     this.checkComplete(State.answers.size);
   }
 

@@ -95,6 +95,9 @@ export class UIScene extends Phaser.Scene {
     const fullscreen = this.children.getByName("fullscreen") as Phaser.GameObjects.Image;
     if (!fullscreen) return;
     fullscreen.setTexture(this.scale.isFullscreen ? "ui-fullscreen-exit" : "ui-fullscreen");
+    // The manual canvas/DPR sizing in fitScreen must recompute against the new
+    // (fullscreen) window dimensions — refresh a few times as they settle.
+    [30, 150, 400].forEach((d) => this.time.delayedCall(d, () => this.scale.refresh()));
   }
 
   handleResponsive() {

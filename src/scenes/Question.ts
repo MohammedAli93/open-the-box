@@ -14,6 +14,7 @@ import { AudioManager } from "@/libs/audio";
 interface QuestionSceneData {
   index: number;
   question: Question;
+  origin?: { x: number; y: number; size: number };
   onResolve: (choice: Choice | null) => void; // null = timed out
 }
 
@@ -73,7 +74,8 @@ export class QuestionScene extends Scene {
       });
     }
 
-    this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.6).setOrigin(0.5).setDepth(ZOrder.QUESTION - 1);
+    // Light overlay only — the boxes have slid away so the wood desk shows through.
+    this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.12).setOrigin(0.5).setDepth(ZOrder.QUESTION - 1);
     this.panel = this.add.container(0, 0).setDepth(ZOrder.QUESTION);
 
     // The word/question lives on a big real spiral notepad.
@@ -116,10 +118,15 @@ export class QuestionScene extends Scene {
 
     this.handleResponsive();
 
-    // Reveal: continue the box-fold with a scale-in.
-    this.panel.setScale(0);
-    this.tweens.add({ targets: this.panel, scale: 1, duration: 260, ease: "Back.easeOut" });
-    this.buttons.forEach((b, i) => b.showAnimation(180 + i * 110));
+    // Open: the notepad grows out of the clicked box's position, then the
+    // category cards drop in from the top (matching the source).
+    const [w, h] = fitScreen(this.scale);
+    const origin = this.sceneData.origin;
+    const ox = origin ? origin.x : w / 2;
+    const oy = origin ? origin.y : h / 2;
+    this.panel.setPosition(ox, oy).setScale(0.12);
+    this.tweens.add({ targets: this.panel, x: w / 2, y: h / 2, scale: 1, duration: 360, ease: "Back.easeOut" });
+    this.buttons.forEach((b, i) => b.dropIn(220 + i * 90));
   }
 
   update(_time: number, delta: number) {

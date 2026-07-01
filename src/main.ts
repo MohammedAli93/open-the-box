@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import RexUIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import { LoadingScene } from "@/scenes/Loading";
+import { TitleScene } from "@/scenes/Title";
 import { GridScene } from "@/scenes/Grid";
 import { QuestionScene } from "@/scenes/Question";
 import { RevealScene } from "@/scenes/Reveal";
@@ -18,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
   scale: {
     mode: Phaser.Scale.RESIZE,
   },
-  scene: [LoadingScene, GridScene, QuestionScene, RevealScene, CompleteScene, MenuScene, AudioScene, UIScene],
+  scene: [LoadingScene, GridScene, QuestionScene, RevealScene, CompleteScene, MenuScene, AudioScene, TitleScene, UIScene],
   plugins: {
     scene: [{ key: "rexUI", plugin: RexUIPlugin, mapping: "rexUI" }],
   },
