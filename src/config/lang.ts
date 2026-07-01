@@ -7,8 +7,9 @@ export const LANG = {
   COMPLETE_RESTART: "العب مرة أخرى",
   REVEAL_NEXT: "انقر للمتابعة",
 
+  START_HEADER: "افتح الصندوق",
   START_PLAY: "البدء",
-  START_INSTRUCTION: "انقر فوق كل صندوق بالتناوب لفتحه",
+  START_INSTRUCTION: "انقر فوق كل صندوق بالتناوب لفتحه والكشف عن العنصر الذي بداخله.",
   GRID_HINT: "انقر على واحدة لفتحها",
 
   MENU_HEADER: "القائمة",

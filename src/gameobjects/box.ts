@@ -128,6 +128,19 @@ export class Box extends Phaser.GameObjects.Container {
     this.disableInteractive();
   }
 
+  // Hover: the pad lifts off the desk (scales up + rises), like picking a book.
+  setHovered(on: boolean) {
+    if (this.answered) return;
+    this.scene.tweens.killTweensOf(this);
+    this.scene.tweens.add({
+      targets: this,
+      scale: on ? 1.09 : 1,
+      y: on ? this.homeY - this.homeSize * 0.07 : this.homeY,
+      duration: 130,
+      ease: "Quad.easeOut",
+    });
+  }
+
   popIn(delay: number) {
     this.setScale(0);
     this.scene.tweens.add({

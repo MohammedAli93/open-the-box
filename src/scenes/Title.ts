@@ -14,6 +14,7 @@ import { AudioManager } from "@/libs/audio";
 export class TitleScene extends Scene {
   private responsive?: ResponsiveHandler;
   private overlay!: Phaser.GameObjects.Rectangle;
+  private headerText!: Phaser.GameObjects.Text;
   private title!: Phaser.GameObjects.Text;
   private instruction!: Phaser.GameObjects.Text;
   private playBtn!: Phaser.GameObjects.Container;
@@ -33,6 +34,11 @@ export class TitleScene extends Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
 
     this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.82).setDepth(ZOrder.OVERLAY - 1);
+    this.headerText = this.add
+      .text(0, 0, LANG.START_HEADER, { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
+      .setOrigin(0.5)
+      .setRTL(true)
+      .setDepth(ZOrder.OVERLAY);
     this.title = this.add
       .text(0, 0, getGameData().title || "", { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff", align: "center" })
       .setOrigin(0.5)
@@ -80,11 +86,14 @@ export class TitleScene extends Scene {
     const [width, height] = fitScreen(this.scale);
     this.overlay.setPosition(width / 2, height / 2).setSize(width, height);
 
-    this.title.setPosition(width / 2, height * 0.26);
-    fitText(this.title, width * 0.86, height * 0.22, { max: Math.round(height * 0.08) });
+    this.headerText.setPosition(width / 2, height * 0.09);
+    fitText(this.headerText, width * 0.5, height * 0.08, { max: Math.round(height * 0.045) });
 
-    this.instruction.setPosition(width / 2, height * 0.72);
-    fitText(this.instruction, width * 0.82, height * 0.1, { max: Math.round(height * 0.04) });
+    this.title.setPosition(width / 2, height * 0.26);
+    fitText(this.title, width * 0.88, height * 0.2, { max: Math.round(height * 0.085) });
+
+    this.instruction.setPosition(width / 2, height * 0.85);
+    fitText(this.instruction, width * 0.84, height * 0.08, { max: Math.round(height * 0.038) });
 
     // Blue play button.
     const bw = Math.min(width * 0.34, height * 0.26);

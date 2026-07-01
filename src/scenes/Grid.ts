@@ -12,6 +12,7 @@ import { AudioManager } from "@/libs/audio";
 export class GridScene extends Scene {
   private responsive?: ResponsiveHandler;
   private background!: Phaser.GameObjects.Image;
+  private headphones?: Phaser.GameObjects.Image;
   private boxes: Box[] = [];
   private busy = false;
 
@@ -38,14 +39,17 @@ export class GridScene extends Scene {
       box.setDepth(ZOrder.BOX);
       setInteractive(box, this.input);
       box.on(Phaser.Input.Events.POINTER_OVER, () => {
-        if (!box.answered && !this.busy) box.setScale(box.scaleX * 1.04, 1.04);
+        if (!box.answered && !this.busy) box.setHovered(true);
       });
       box.on(Phaser.Input.Events.POINTER_OUT, () => {
-        if (!box.answered && !this.busy) box.setScale(1, 1);
+        if (!box.answered && !this.busy) box.setHovered(false);
       });
       box.on(Phaser.Input.Events.POINTER_DOWN, () => this.openBox(box, q));
       this.boxes.push(box);
     });
+
+    // Intro prop (headphones) that slides off the desk when the game starts.
+    this.headphones = this.add.image(0, 0, "th-deco-headphone").setName("headphones").setDepth(ZOrder.BOX_LIFTED);
 
     this.handleResponsive();
     this.boxes.forEach((b, i) => b.popIn(i * 70));
@@ -54,6 +58,23 @@ export class GridScene extends Scene {
     // Show the Start screen over the paused grid; play resumes it (and starts BGM).
     this.scene.launch("Title");
     this.scene.pause();
+
+    // When Play is pressed the grid resumes — slide the intro prop out over the board.
+    this.events.once(Phaser.Scenes.Events.RESUME, () => this.slideIntroOut());
+  }
+
+  private slideIntroOut() {
+    if (!this.headphones) return;
+    this.tweens.add({
+      targets: this.headphones,
+      x: -this.headphones.displayWidth,
+      y: -this.headphones.displayHeight,
+      angle: -25,
+      alpha: 0,
+      duration: 600,
+      ease: "Back.easeIn",
+      onComplete: () => this.headphones?.setVisible(false),
+    });
   }
 
   private async openBox(box: Box, question: Question) {
@@ -150,6 +171,12 @@ export class GridScene extends Scene {
     deco("deco-pen", width * 0.93, height * 0.12, 25);
     deco("deco-rubber", width * 0.05, height * 0.82, 0);
     deco("deco-sheet", width * 0.9, height * 0.9, 10);
+
+    // Intro headphones (top-left), only positioned while still visible.
+    if (this.headphones?.visible) {
+      const hpScale = (width * 0.26) / this.headphones.width;
+      this.headphones.setScale(hpScale).setPosition(width * 0.13, height * 0.28);
+    }
 
     const n = this.boxes.length;
     if (n === 0) return;

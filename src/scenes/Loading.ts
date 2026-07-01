@@ -53,6 +53,7 @@ export class LoadingScene extends Scene {
     ["deco-pencil", "deco-pencil2", "deco-pen", "deco-rubber", "deco-sheet"].forEach((d) =>
       this.load.image(`th-${d}`, `${d}.webp`)
     );
+    this.load.image("th-deco-headphone", "deco-headphone.webp");
 
     // UI icons (from the previous game), used bottom-corner like the source.
     this.load.setPath("assets/ui");
