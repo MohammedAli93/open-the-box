@@ -1,0 +1,6 @@
+export const ZOrder = {
+  GAME_QUESTION_CONTAINER: 0,
+  GAME_PAGE_NUMBER: 1,
+  TITLE_TEXT: 100,
+  UI: 200,
+};

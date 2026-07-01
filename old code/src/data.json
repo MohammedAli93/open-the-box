@@ -1,0 +1,158 @@
+{
+  "questions": [
+    {
+      "text": "السخاء يزرع",
+      "image": "1-image",
+      "correctAnswer": "A",
+      "answers": [
+        {
+          "key": "A",
+          "image": "1-a",
+          "text": "المحبة"
+        },
+        {
+          "key": "B",
+          "image": "1-b",
+          "text": "الاحترام"
+        },
+        {
+          "key": "C",
+          "image": "1-c",
+          "text": "الشكر"
+        }
+      ]
+    },
+    {
+      "text": "الكرم إعطاء ما نملكه للآخرين عن طيب نفس و بلا غرض",
+      "image": "2-image",
+      "correctAnswer": "B",
+      "answers": [
+        {
+          "key": "A",
+          "image": "2-a",
+          "text": "المال"
+        },
+        {
+          "key": "B",
+          "image": "2-b",
+          "text": "أي شيء"
+        },
+        {
+          "key": "C",
+          "image": "2-c",
+          "text": "الغذاء"
+        }
+      ]
+    },
+    {
+      "text": "إذا أعطيت المحتاج فوق حاجته تحول الكرم إلى",
+      "image": "3-image",
+      "correctAnswer": "C",
+      "answers": [
+        {
+          "key": "A",
+          "image": "3-a",
+          "text": "بذل"
+        },
+        {
+          "key": "B",
+          "image": "3-b",
+          "text": "إسراف"
+        },
+        {
+          "key": "C",
+          "image": "3-c",
+          "text": "جود"
+        }
+      ]
+    },
+    {
+      "text": "قدوتنا في الكرم",
+      "image": "4-image",
+      "correctAnswer": "A",
+      "answers": [
+        {
+          "key": "A",
+          "image": "4-a",
+          "text": "الإمام الحسن"
+        },
+        {
+          "key": "B",
+          "image": "4-b",
+          "text": "الإمام الجواد"
+        },
+        {
+          "key": "C",
+          "image": "4-c",
+          "text": "الإمام الحسين"
+        }
+      ]
+    },
+    {
+      "text": "درجة عالية من الكرم تدفع صاحبها لبذل ما يحتاجه",
+      "image": "5-image",
+      "correctAnswer": "A",
+      "answers": [
+        {
+          "key": "A",
+          "image": "5-a",
+          "text": "الإيثار"
+        },
+        {
+          "key": "B",
+          "image": "5-b",
+          "text": "العطاء"
+        },
+        {
+          "key": "C",
+          "image": "5-c",
+          "text": "الجود"
+        }
+      ]
+    },
+    {
+      "text": "ذكرت قصة إيثار أهل البيت -عليهم السلام- في سورة",
+      "image": "6-image",
+      "correctAnswer": "C",
+      "answers": [
+        {
+          "key": "A",
+          "image": "6-a",
+          "text": "البقرة"
+        },
+        {
+          "key": "B",
+          "image": "6-b",
+          "text": "النبأ"
+        },
+        {
+          "key": "C",
+          "image": "6-c",
+          "text": "الإنسان"
+        }
+      ]
+    },
+    {
+      "text": "من جاد",
+      "image": "7-image",
+      "correctAnswer": "B",
+      "answers": [
+        {
+          "key": "A",
+          "image": "7-a",
+          "text": "عاد"
+        },
+        {
+          "key": "B",
+          "image": "7-b",
+          "text": "ساد"
+        },
+        {
+          "key": "C",
+          "image": "7-c",
+          "text": "صاد"
+        }
+      ]
+    }
+  ]
+}

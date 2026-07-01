@@ -1,0 +1,99 @@
+{
+  "title": "افتح الصندوق - صنِّف الكلمة",
+  "mode": "quiz",
+  "timerSeconds": 30,
+  "skin": "notebook",
+  "questions": [
+    {
+      "type": "text",
+      "text": "كَتَبَ",
+      "image": null,
+      "color": "#2aa6de",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "فعل ماضٍ" }
+    },
+    {
+      "type": "text",
+      "text": "يَلعَبُ",
+      "image": null,
+      "color": "#e23f7e",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "فعل مضارع" }
+    },
+    {
+      "type": "text",
+      "text": "اِجلِسْ",
+      "image": null,
+      "color": "#2fa85f",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "فعل أمر" }
+    },
+    {
+      "type": "text",
+      "text": "كِتَاب",
+      "image": null,
+      "color": "#2aa6de",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "اسم" }
+    },
+    {
+      "type": "text",
+      "text": "شَرِبَ",
+      "image": null,
+      "color": "#e23f7e",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "فعل ماضٍ" }
+    },
+    {
+      "type": "text",
+      "text": "اُكتُبْ",
+      "image": null,
+      "color": "#2fa85f",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "فعل أمر" }
+    },
+    {
+      "type": "text",
+      "text": "مَدرَسَة",
+      "image": null,
+      "color": "#2aa6de",
+      "choices": [
+        { "type": "text", "content": "اسم" },
+        { "type": "text", "content": "فعل ماضٍ" },
+        { "type": "text", "content": "فعل مضارع" },
+        { "type": "text", "content": "فعل أمر" }
+      ],
+      "correct": { "type": "text", "content": "اسم" }
+    }
+  ]
+}
