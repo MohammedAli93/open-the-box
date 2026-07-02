@@ -284,23 +284,22 @@ export class Box extends Phaser.GameObjects.Container {
     });
   }
 
-  // Answer resolved: the board shrinks back to its grid slot, then settles into
-  // its answered look (word + tick, or a lock).
-  returnHome(): Promise<void> {
-    const s = this.homeSize / this.curSize;
+  // Answer resolved: like the source, the board slides straight OFF the desk to
+  // the right (it does NOT shrink back into its slot). The grid then reforms and
+  // this box slides back in with the rest, wearing its answered look.
+  slideOffBoard(): Promise<void> {
+    const offX = this.scene.scale.width + this.displayWidth;
     return new Promise((resolve) => {
       this.scene.tweens.killTweensOf(this);
       this.scene.tweens.add({
         targets: this,
-        x: this.homeX,
-        y: this.homeY,
-        scaleX: s,
-        scaleY: s,
-        duration: 320,
+        x: offX,
+        angle: 8,
+        duration: 380,
         ease: "Back.easeIn",
         onComplete: () => {
-          this.setScale(1);
-          this.setPosition(this.homeX, this.homeY);
+          // Reset for the reform slide-in (position is set by slideIn).
+          this.setScale(1).setAngle(0);
           this.applySize(this.homeSize);
           resolve();
         },

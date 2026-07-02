@@ -83,7 +83,7 @@ export class UIScene extends Phaser.Scene {
     if (this.timerTotal > 0) {
       this.timerBar = this.add.graphics().setDepth(ZOrder.UI).setVisible(false);
       this.timerText = this.add
-        .text(0, 0, String(this.timerTotal), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
+        .text(0, 0, this.fmtTime(this.timerTotal), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
         .setOrigin(0, 0)
         .setDepth(ZOrder.UI)
         .setVisible(false);
@@ -126,7 +126,14 @@ export class UIScene extends Phaser.Scene {
     this.timerBar.clear();
     this.timerBar.fillStyle(0x000000, 0.28).fillRoundedRect(this.timerX, this.timerY, this.timerW, h, h / 2);
     this.timerBar.fillStyle(color, 1).fillRoundedRect(this.timerX, this.timerY, Math.max(h, this.timerW * frac), h, h / 2);
-    this.timerText.setText(String(Math.ceil(State.timerRemaining)));
+    this.timerText.setText(this.fmtTime(State.timerRemaining));
+  }
+
+  // Countdown shown as M:SS (e.g. "0:25"), matching the source.
+  private fmtTime(sec: number) {
+    const s = Math.max(0, Math.ceil(sec));
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, "0")}`;
   }
 
   private gameOver() {
@@ -187,14 +194,15 @@ export class UIScene extends Phaser.Scene {
       }
 
       if (this.timerBar && this.timerText) {
-        // Seconds number top-left; half-width bar centered and raised near the top.
-        this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.014, 8, 22);
-        const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 24, 56);
-        const m = Math.max(10, width * 0.012);
-        this.timerText.setFontSize(Math.round(numSize)).setPosition(m, m);
-        this.timerW = width * 0.5;
+        // Match the source: a small M:SS number tucked top-left, and a thin wide
+        // progress bar (~68% width) centered near the very top.
+        this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.016, 7, 18);
+        const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.04, 18, 40);
+        const m = Math.max(8, width * 0.012);
+        this.timerText.setFontSize(Math.round(numSize)).setPosition(m, Math.max(6, height * 0.016));
+        this.timerW = width * 0.68;
         this.timerX = (width - this.timerW) / 2;
-        this.timerY = Math.max(8, height * 0.012);
+        this.timerY = Math.max(7, height * 0.022);
         this.drawTimer();
       }
     };

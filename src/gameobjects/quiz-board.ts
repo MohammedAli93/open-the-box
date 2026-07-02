@@ -128,7 +128,26 @@ export class QuizBoard {
 
     await this.wait(850);
     await Promise.all(this.buttons.map((b) => b.crumple(0)));
-    await this.wait(250);
+    await this.wait(200);
+    // The crumpled papers are tossed off the desk (up + fade) rather than just
+    // vanishing, like the source.
+    await new Promise<void>((resolve) => {
+      let done = 0;
+      const n = this.buttons.length || 1;
+      this.buttons.forEach((b, i) =>
+        this.scene.tweens.add({
+          targets: b,
+          y: b.y - 40 - i * 6,
+          alpha: 0,
+          angle: (b.angle || 0) + (i % 2 ? 12 : -12),
+          duration: 300,
+          delay: i * 30,
+          ease: "Back.easeIn",
+          onComplete: () => ++done >= n && resolve(),
+        })
+      );
+      if (!this.buttons.length) resolve();
+    });
   }
 
   private wait(ms: number): Promise<void> {

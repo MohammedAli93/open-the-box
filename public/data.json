@@ -94,6 +94,45 @@
         { "type": "text", "content": "فعل أمر" }
       ],
       "correct": { "type": "text", "content": "اسم" }
+    },
+    {
+      "type": "image",
+      "text": null,
+      "image": "assets/questions/fruit-apple.png",
+      "color": "#e23f7e",
+      "choices": [
+        { "type": "text", "content": "تُفَّاحَة" },
+        { "type": "text", "content": "مَوْزَة" },
+        { "type": "text", "content": "بُرْتُقَالَة" },
+        { "type": "text", "content": "عِنَب" }
+      ],
+      "correct": { "type": "text", "content": "تُفَّاحَة" }
+    },
+    {
+      "type": "both",
+      "text": "مَا لَوْنُ هَذِهِ الفَاكِهَة؟",
+      "image": "assets/questions/fruit-banana.png",
+      "color": "#2fa85f",
+      "choices": [
+        { "type": "text", "content": "أَحْمَر" },
+        { "type": "text", "content": "أَصْفَر" },
+        { "type": "text", "content": "أَخْضَر" },
+        { "type": "text", "content": "بُرْتُقَالِيّ" }
+      ],
+      "correct": { "type": "text", "content": "أَصْفَر" }
+    },
+    {
+      "type": "text",
+      "text": "أَيْنَ البُرْتُقَالَة؟",
+      "image": null,
+      "color": "#2aa6de",
+      "choices": [
+        { "type": "image", "content": "assets/questions/fruit-apple.png" },
+        { "type": "image", "content": "assets/questions/fruit-banana.png" },
+        { "type": "image", "content": "assets/questions/fruit-orange.png" },
+        { "type": "image", "content": "assets/questions/fruit-grapes.png" }
+      ],
+      "correct": { "type": "image", "content": "assets/questions/fruit-orange.png" }
     }
   ]
 }

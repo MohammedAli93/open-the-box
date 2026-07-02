@@ -156,7 +156,7 @@ export class GridScene extends Scene {
       await this.waitForContinue();
       this.boardLanded = false;
       box.setDepth(ZOrder.BOX);
-      await box.returnHome();
+      await box.slideOffBoard();
       this.onRevealed(box);
     } else {
       this.activeBoard = new QuizBoard(this, question);
@@ -164,7 +164,7 @@ export class GridScene extends Scene {
       this.activeBoard = undefined;
       this.boardLanded = false;
       box.setDepth(ZOrder.BOX);
-      await box.returnHome();
+      await box.slideOffBoard();
       this.onAnswered(box, question, choice);
     }
     this.activeBox = undefined;
@@ -232,10 +232,12 @@ export class GridScene extends Scene {
     this.finish(box, (b) => b.markAnswered(correct, question.text), State.answers.size);
   }
 
-  // The answered box settles into its final look; the grid reforms around it.
+  // The board has slid off; the grid reforms — EVERY box (including the one just
+  // answered, now wearing its answered look) slides back down into its slot,
+  // matching the source.
   private finish(box: Box, markFn: (b: Box) => void, done: number) {
     markFn(box);
-    this.boxes.filter((b) => b !== box).forEach((b, i) => b.slideIn(i * 22));
+    this.boxes.forEach((b, i) => b.slideIn(i * 22));
     this.boxes.forEach((b) => {
       if (!b.answered) setInteractive(b, this.input);
     });
