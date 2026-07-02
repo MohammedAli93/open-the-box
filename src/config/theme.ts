@@ -21,5 +21,8 @@ export const DECOS = ["deco-pencil", "deco-pencil2", "deco-pen", "deco-rubber", 
 // Covers are baked per colour (Canvas renderer can't tint reliably).
 export const coverKey = (color: string) => `th-cover-${color}`;
 
+// Answer-choice paper faces, picked at random per card.
+export const ANSWER_PAPERS = ["answer-paper-a", "answer-paper-b"];
+
 // The crumble sprite sheet is 1200x154 = 6 frames of 200px.
 export const CRUMBLE = { key: "th-crumble", frameWidth: 200, frameHeight: 154, frames: 6, anim: "crumble" };

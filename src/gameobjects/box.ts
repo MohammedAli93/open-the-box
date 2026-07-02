@@ -1,5 +1,6 @@
 import { THEME, PAD_CYCLE, coverKey } from "@/config/theme";
 import { FONT_FAMILY } from "@/config/text";
+import { fitText } from "@/utils/layout";
 
 interface BoxConfig {
   index: number; // 0-based
@@ -22,6 +23,12 @@ export class Box extends Phaser.GameObjects.Container {
   private label: Phaser.GameObjects.Text;
   private rings: Phaser.GameObjects.Image;
   private lock?: Phaser.GameObjects.Image;
+  private coverHomeY = 0; // resting y of the cover (top edge, under the rings)
+  // When answered correctly the box stays open, showing the word + a green tick.
+  private revealed = false;
+  private revealText?: string | null;
+  private wordText?: Phaser.GameObjects.Text;
+  private tick?: Phaser.GameObjects.Image;
 
   constructor(scene: Phaser.Scene, config: BoxConfig) {
     super(scene, 0, 0);
@@ -60,13 +67,42 @@ export class Box extends Phaser.GameObjects.Container {
     this.rings.setDisplaySize(w, h);
     this.coverImg.setDisplaySize(w, h);
     // Cover pivots on the top edge (just under the rings).
-    this.cover.setPosition(0, -h / 2);
+    this.coverHomeY = -h / 2;
+    this.cover.setPosition(0, this.coverHomeY).setScale(1);
     this.label.setPosition(0, h * 0.46).setFontSize(Math.round(h * 0.3));
     this.setSize(w, h);
     if (this.lock) {
       const s = w * 0.5;
       this.lock.setDisplaySize(s, s * (this.lock.height / this.lock.width)).setPosition(0, h * 0.02);
     }
+    if (this.revealed) this.layoutReveal(w, h);
+  }
+
+  // Correctly-answered box: cover folded away, the word on the pad + a tick below.
+  private layoutReveal(w: number, h: number) {
+    this.cover.setScale(1, 0); // fold the cover flat so the pad shows
+    const hasWord = !!this.revealText;
+    if (hasWord) {
+      if (!this.wordText) {
+        this.wordText = this.scene.add
+          .text(0, 0, this.revealText!, { fontFamily: FONT_FAMILY.BOLD, color: "#2a2a2a", align: "center" })
+          .setOrigin(0.5)
+          .setRTL(true);
+        this.add(this.wordText);
+      }
+      this.wordText.setVisible(true);
+      fitText(this.wordText, w * 0.82, h * 0.46, { max: Math.round(h * 0.24) });
+      this.wordText.setPosition(0, -h * 0.08);
+    }
+    if (!this.tick) {
+      this.tick = this.scene.add.image(0, 0, "correct-big").setOrigin(0.5);
+      this.add(this.tick);
+    }
+    const ts = w * (hasWord ? 0.34 : 0.5);
+    this.tick
+      .setVisible(true)
+      .setDisplaySize(ts, ts * (this.tick.height / this.tick.width))
+      .setPosition(0, hasWord ? h * 0.3 : 0);
   }
 
   setHome(x: number, y: number, size: number) {
@@ -76,14 +112,14 @@ export class Box extends Phaser.GameObjects.Container {
     this.applySize(size);
   }
 
-  // Grid clears: this box slides down off the desk and fades (staggered).
+  // Grid clears: this box flies up off the desk and fades (staggered).
   slideOut(delay = 0): Promise<void> {
     return new Promise((resolve) => {
       this.scene.tweens.add({
         targets: this,
-        y: this.homeY + this.homeSize * 1.7,
+        y: this.homeY - this.homeSize * 1.9,
         alpha: 0,
-        angle: 6,
+        angle: -6,
         delay,
         duration: 300,
         ease: "Back.easeIn",
@@ -92,9 +128,9 @@ export class Box extends Phaser.GameObjects.Container {
     });
   }
 
-  // Grid reforms: this box slides back up to its home position.
+  // Grid reforms: this box drops back down from above to its home position.
   slideIn(delay = 0): Promise<void> {
-    this.setPosition(this.homeX, this.homeY + this.homeSize * 1.7).setAlpha(0).setAngle(0);
+    this.setPosition(this.homeX, this.homeY - this.homeSize * 1.9).setAlpha(0).setAngle(0);
     return new Promise((resolve) => {
       this.scene.tweens.add({
         targets: this,
@@ -108,8 +144,36 @@ export class Box extends Phaser.GameObjects.Container {
     });
   }
 
-  markAnswered(_correct: boolean) {
-    this.lockBox();
+  // Click: the clicked box holds its place while the others fly off, then its
+  // cover (first page) folds up off the binding — like opening a book — to
+  // reveal the pad, just before the answer board grows out of it.
+  openCover(): Promise<void> {
+    return new Promise((resolve) => {
+      this.scene.tweens.killTweensOf(this.cover);
+      this.scene.tweens.add({
+        targets: this.cover,
+        y: this.coverHomeY - this.homeSize * 0.12,
+        scaleY: 0,
+        duration: 320,
+        ease: "Quad.easeIn",
+        onComplete: () => resolve(),
+      });
+    });
+  }
+
+  // Correct → the box stays open showing the word + a green tick. Wrong (or no
+  // answer) → it locks like the source.
+  markAnswered(correct: boolean, text?: string | null) {
+    if (correct) {
+      this.answered = true;
+      this.revealed = true;
+      this.revealText = text;
+      this.scene.tweens.killTweensOf(this.cover);
+      this.applySize(this.homeSize);
+      this.disableInteractive();
+    } else {
+      this.lockBox();
+    }
   }
 
   markOpened() {
@@ -118,6 +182,7 @@ export class Box extends Phaser.GameObjects.Container {
 
   private lockBox() {
     this.answered = true;
+    this.scene.tweens.killTweensOf(this.cover);
     this.coverImg.setTexture(coverKey("grey"));
     this.label.setAlpha(0.35);
     if (!this.lock) {
@@ -128,15 +193,16 @@ export class Box extends Phaser.GameObjects.Container {
     this.disableInteractive();
   }
 
-  // Hover: the pad lifts off the desk (scales up + rises), like picking a book.
+  // Hover: only the cover (first page) lifts off the pad, like the corner of a
+  // book cover being raised. The box itself does not zoom.
   setHovered(on: boolean) {
     if (this.answered) return;
-    this.scene.tweens.killTweensOf(this);
+    const lift = this.homeSize * 0.06;
+    this.scene.tweens.killTweensOf(this.cover);
     this.scene.tweens.add({
-      targets: this,
-      scale: on ? 1.09 : 1,
-      y: on ? this.homeY - this.homeSize * 0.07 : this.homeY,
-      duration: 130,
+      targets: this.cover,
+      y: on ? this.coverHomeY - lift : this.coverHomeY,
+      duration: 140,
       ease: "Quad.easeOut",
     });
   }

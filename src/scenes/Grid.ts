@@ -13,6 +13,7 @@ export class GridScene extends Scene {
   private responsive?: ResponsiveHandler;
   private background!: Phaser.GameObjects.Image;
   private headphones?: Phaser.GameObjects.Image;
+  private introProps: Phaser.GameObjects.Image[] = []; // corner props that fly out on play
   private boxes: Box[] = [];
   private busy = false;
 
@@ -31,7 +32,10 @@ export class GridScene extends Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
 
     this.background = this.add.image(0, 0, THEME.wood).setDepth(ZOrder.BACKGROUND);
-    DECOS.forEach((d) => this.add.image(0, 0, `th-${d}`).setName(d).setDepth(ZOrder.BACKGROUND + 1));
+    // Corner props sit ABOVE the boxes so they sweep over the board as they leave.
+    this.introProps = DECOS.map((d) =>
+      this.add.image(0, 0, `th-${d}`).setName(d).setDepth(ZOrder.BOX_LIFTED)
+    );
 
     const questions = getGameData().questions;
     questions.forEach((q, i) => {
@@ -50,6 +54,7 @@ export class GridScene extends Scene {
 
     // Intro prop (headphones) that slides off the desk when the game starts.
     this.headphones = this.add.image(0, 0, "th-deco-headphone").setName("headphones").setDepth(ZOrder.BOX_LIFTED);
+    this.introProps.push(this.headphones);
 
     this.handleResponsive();
     this.boxes.forEach((b, i) => b.popIn(i * 70));
@@ -59,21 +64,29 @@ export class GridScene extends Scene {
     this.scene.launch("Title");
     this.scene.pause();
 
-    // When Play is pressed the grid resumes — slide the intro prop out over the board.
-    this.events.once(Phaser.Scenes.Events.RESUME, () => this.slideIntroOut());
+    // When Play is pressed the grid resumes — the corner props fly out one by one.
+    this.events.once(Phaser.Scenes.Events.RESUME, () => this.flyIntroOut());
   }
 
-  private slideIntroOut() {
-    if (!this.headphones) return;
-    this.tweens.add({
-      targets: this.headphones,
-      x: -this.headphones.displayWidth,
-      y: -this.headphones.displayHeight,
-      angle: -25,
-      alpha: 0,
-      duration: 600,
-      ease: "Back.easeIn",
-      onComplete: () => this.headphones?.setVisible(false),
+  // Each corner prop shoots off its own corner of the screen, staggered and fast,
+  // clearing the desk before play.
+  private flyIntroOut() {
+    const [width, height] = fitScreen(this.scale);
+    this.introProps.forEach((img, i) => {
+      if (!img || !img.visible) return;
+      const dx = img.x < width / 2 ? -1 : 1;
+      const dy = img.y < height / 2 ? -1 : 1;
+      this.tweens.add({
+        targets: img,
+        x: img.x + dx * (width * 0.55 + img.displayWidth),
+        y: img.y + dy * (height * 0.55 + img.displayHeight),
+        angle: img.angle + dx * 25,
+        alpha: 0,
+        delay: i * 260,
+        duration: 720,
+        ease: "Back.easeIn",
+        onComplete: () => img.setVisible(false),
+      });
     });
   }
 
@@ -82,16 +95,20 @@ export class GridScene extends Scene {
     this.busy = true;
     box.setScale(1, 1);
     this.boxes.forEach((b) => b.disableInteractive());
-    AudioManager.playSFX(this.sound, "sfx-open");
-
-    // The rest of the grid slides away (staggered); the clicked box hides so the
-    // classify notepad can grow out of its position.
-    const others = this.boxes.filter((b) => b !== box);
-    others.forEach((b, i) => b.slideOut(i * 22));
-    box.setVisible(false);
     const origin = { x: box.homeX, y: box.homeY, size: box.homeSize };
 
-    await new Promise((r) => this.time.delayedCall(180, r));
+    // The other boxes fly up off the desk (staggered) while the clicked box
+    // holds its place, lifted above them.
+    const others = this.boxes.filter((b) => b !== box);
+    others.forEach((b, i) => b.slideOut(i * 22));
+    box.setDepth(ZOrder.BOX_LIFTED);
+
+    // Once the board has cleared, the clicked box's cover folds open — then the
+    // answer board grows out of its position.
+    await new Promise((r) => this.time.delayedCall(240, r));
+    AudioManager.playSFX(this.sound, "sfx-open");
+    await box.openCover();
+    box.setVisible(false).setDepth(ZOrder.BOX);
 
     if (getMode(getGameData()) === "reveal") {
       this.scene.launch("Reveal", { index: box.index, item: question, origin, onResolve: () => this.onRevealed(box) });
@@ -132,7 +149,7 @@ export class GridScene extends Scene {
     // choice === null means the per-question timer expired with no answer.
     const correct = choice ? isCorrectChoice(question, choice) : false;
     State.answers.set(box.index, { selectedContent: choice?.content ?? "", correct });
-    this.closeBox(box, (b) => b.markAnswered(correct));
+    this.closeBox(box, (b) => b.markAnswered(correct, question.text));
     this.checkComplete(State.answers.size);
   }
 
@@ -161,21 +178,23 @@ export class GridScene extends Scene {
       .setScale(Math.max(width / this.background.width, height / this.background.height));
 
     // Scatter the desk decorations near the edges (scaled to screen).
-    const s = Math.min(width, height) / 480;
+    // Big corner props (only positioned while still on the desk — once they've
+    // flown out on play they stay gone).
+    const s = (Math.min(width, height) / 480) * 1.7;
     const deco = (name: string, x: number, y: number, angle: number) => {
       const img = this.children.getByName(name) as Phaser.GameObjects.Image | null;
-      img?.setScale(s).setPosition(x, y).setAngle(angle);
+      if (img?.visible) img.setScale(s).setPosition(x, y).setAngle(angle);
     };
     deco("deco-pencil", width * 0.1, height * 0.9, -20);
     deco("deco-pencil2", width * 0.16, height * 0.86, 15);
-    deco("deco-pen", width * 0.93, height * 0.12, 25);
-    deco("deco-rubber", width * 0.05, height * 0.82, 0);
+    deco("deco-pen", width * 0.92, height * 0.12, 25);
+    deco("deco-rubber", width * 0.06, height * 0.82, 0);
     deco("deco-sheet", width * 0.9, height * 0.9, 10);
 
     // Intro headphones (top-left), only positioned while still visible.
     if (this.headphones?.visible) {
-      const hpScale = (width * 0.26) / this.headphones.width;
-      this.headphones.setScale(hpScale).setPosition(width * 0.13, height * 0.28);
+      const hpScale = (width * 0.34) / this.headphones.width;
+      this.headphones.setScale(hpScale).setPosition(width * 0.15, height * 0.3);
     }
 
     const n = this.boxes.length;

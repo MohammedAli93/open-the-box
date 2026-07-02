@@ -5,14 +5,16 @@ import { FONT_FAMILY } from "@/config/text";
 import { ZOrder } from "@/config/zorder";
 import { getGameData } from "@/core/data";
 import { fitScreen } from "@/utils/responsive";
-import { fitText } from "@/utils/layout";
+import { fitText, padArabic } from "@/utils/layout";
 import { setInteractive } from "@/utils/interactive";
 import { AudioManager } from "@/libs/audio";
+import { AnimationManager } from "@/libs/animation";
 
 // The Start screen shown over the (paused) grid: title, instruction and a blue
 // Play button. Matches the source's intro.
 export class TitleScene extends Scene {
   private responsive?: ResponsiveHandler;
+  private anim!: AnimationManager;
   private overlay!: Phaser.GameObjects.Rectangle;
   private headerText!: Phaser.GameObjects.Text;
   private title!: Phaser.GameObjects.Text;
@@ -32,6 +34,7 @@ export class TitleScene extends Scene {
 
   create() {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
+    this.anim = new AnimationManager(this);
 
     this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.82).setDepth(ZOrder.OVERLAY - 1);
     this.headerText = this.add
@@ -60,18 +63,20 @@ export class TitleScene extends Scene {
     setInteractive(this.playBtn, this.input);
     this.playBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.playBtn.setScale(1.05));
     this.playBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.playBtn.setScale(1));
-    this.playBtn.on(Phaser.Input.Events.POINTER_DOWN, () => this.start());
+    this.playBtn.on(Phaser.Input.Events.POINTER_DOWN, () =>
+      this.anim.playButtonPress(this.playBtn, { sfx: "sfx-open" }).then(() => this.start())
+    );
 
     this.handleResponsive();
 
-    // Intro pop of the play button.
+    // Staggered intro: title text slides+fades in, then the play button pops.
+    this.anim.screenIntro([this.headerText, this.title, this.instruction], { slide: 50, stagger: 110 });
     this.playBtn.setScale(0);
-    this.tweens.add({ targets: this.playBtn, scale: 1, duration: 400, delay: 150, ease: "Back.easeOut" });
+    this.tweens.add({ targets: this.playBtn, scale: 1, duration: 400, delay: 460, ease: "Back.easeOut" });
   }
 
   private start() {
     AudioManager.startBGM(this.sound, "bgm");
-    AudioManager.playSFX(this.sound, "sfx-open");
     this.scene.stop();
     this.scene.resume("Grid");
   }
@@ -103,6 +108,7 @@ export class TitleScene extends Scene {
     this.playBg.fillStyle(0x33a9e0, 1).fillRoundedRect(-bw / 2, -bh / 2, bw, bh, 16);
     this.playTri.setPosition(0, -bh * 0.12).setScale(bh / 60);
     this.playText.setPosition(0, bh * 0.28).setFontSize(Math.round(bh * 0.2));
+    padArabic(this.playText);
     this.playBtn.setSize(bw, bh).setPosition(width / 2, height / 2);
   }
 

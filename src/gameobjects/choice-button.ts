@@ -1,9 +1,9 @@
 import { FONT_FAMILY } from "@/config/text";
 import { ZOrder } from "@/config/zorder";
 import { type Choice } from "@/core/data";
-import { fitText, fitImage } from "@/utils/layout";
+import { fitText, fitImage, padArabic } from "@/utils/layout";
 import { arabicNum } from "@/utils/arabic";
-import { THEME, CRUMBLE } from "@/config/theme";
+import { THEME, CRUMBLE, ANSWER_PAPERS } from "@/config/theme";
 
 const LABELS = ["أ", "ب", "ج", "د", "هـ", "و"];
 
@@ -27,7 +27,7 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
     this.choice = choice;
     this.textColor = "#" + (textColor >>> 0).toString(16).padStart(6, "0");
 
-    this.pad = scene.add.image(0, 0, THEME.pad("white")).setOrigin(0.5);
+    this.pad = scene.add.image(0, 0, Phaser.Utils.Array.GetRandom(ANSWER_PAPERS)).setOrigin(0.5);
     this.rings = scene.add.image(0, 0, THEME.rings).setOrigin(0.5);
     this.letter = scene.add
       .text(0, 0, LABELS[index] ?? arabicNum(index + 1), { fontFamily: FONT_FAMILY.BOLD, color: "#9aa0ab" })
@@ -67,6 +67,7 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
     this.rings.setDisplaySize(w, h);
 
     this.letter.setFontSize(h * 0.11).setPosition(0, -h * 0.28);
+    padArabic(this.letter);
 
     const bodyW = w * 0.8;
     const bodyH = h * 0.42;
@@ -117,97 +118,51 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
       this.mark.setTexture(key);
     }
     this.mark.setVisible(true);
-    const ms = this._w * 0.34;
-    this.mark.setDisplaySize(ms, ms).setPosition(this._w / 2 - ms * 0.55, -this._h / 2 + ms * 0.55);
+    // Small badge low on the card (like the source's little tick).
+    const ms = this._w * 0.3;
+    this.mark
+      .setDisplaySize(ms, ms * (this.mark.height / this.mark.width))
+      .setPosition(this._w / 2 - ms * 0.6, this._h / 2 - ms * 0.6);
   }
 
-  setStatus(status: "correct" | "incorrect") {
+  // Stamp the result: a green tick if correct, the red cross if wrong.
+  stamp(status: "correct" | "incorrect") {
     if (status === "correct") {
-      this.showMark("correct-small");
-      this.pad.setTint(0xd8f3e0);
+      this.showMark("correct-big");
     } else {
       this.showMark(THEME.cross);
     }
   }
 
-  dim() {
-    this.setAlpha(0.5);
+  // A wrong / non-answer card fades away before the papers crumple.
+  fadeOut() {
+    this.scene.tweens.add({ targets: this, alpha: 0.12, duration: 320, ease: "Sine.easeOut" });
   }
 
-  pulse() {
-    this.scene.tweens.add({ targets: this, scale: this.scale * 1.06, duration: 480, yoyo: true, repeat: -1 });
-  }
-
-  // The paper crumples into a ball over the card.
-  private crumble() {
-    if (this.crumbleSprite) return;
-    this.crumbleSprite = this.scene.add
-      .sprite(0, 0, CRUMBLE.key, 0)
-      .setDisplaySize(this._w * 1.25, this._w * 1.25 * (154 / 200))
-      .setDepth(ZOrder.FEEDBACK);
-    this.add(this.crumbleSprite);
-    this.crumbleSprite.play(CRUMBLE.anim);
-    this.crumbleSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      // Hide the card content, leave the crumpled ball.
-      this.label?.setVisible(false);
-      this.picture?.setVisible(false);
-      this.letter.setVisible(false);
-      this.pad.setVisible(false);
-      this.rings.setVisible(false);
-      this.mark?.setVisible(false);
-    });
-  }
-
-  // Correct → tick pops; wrong → cross + crumple + shake.
-  playSelected(status: "correct" | "incorrect"): Promise<void> {
-    this.setStatus(status);
-    if (status === "correct") {
-      const big = this.scene.add
-        .image(this.x, this.y, "correct-big")
-        .setDepth(ZOrder.FEEDBACK)
-        .setScale(0);
-      return new Promise((res) => {
-        this.scene.tweens.add({
-          targets: big,
-          scale: (Math.min(this._w, this._h) / Math.max(1, big.width)) * 1.15,
-          duration: 260,
-          ease: "Back.easeOut",
-          yoyo: true,
-          hold: 350,
-          onComplete: () => {
-            big.destroy();
-            res();
-          },
-        });
-      });
-    }
-    // incorrect
-    return Promise.allSettled([this.shake(), this.delayedCrumble()]).then(() => undefined);
-  }
-
-  private delayedCrumble(): Promise<void> {
+  // The paper scrunches into a ball, then the card content is hidden. All cards
+  // crumple together; a faded card crumples faintly (its alpha is kept).
+  crumple(delay = 0): Promise<void> {
     return new Promise((resolve) => {
-      this.scene.time.delayedCall(200, () => {
-        this.crumble();
-        this.scene.time.delayedCall(500, () => resolve());
-      });
-    });
-  }
-
-  private shake(): Promise<void> {
-    return new Promise((resolve) => {
-      const a = this.baseAngle;
-      this.setAngle(a - 5);
-      this.scene.tweens.add({
-        targets: this,
-        angle: a + 5,
-        duration: 60,
-        yoyo: true,
-        repeat: 2,
-        onComplete: () => {
-          this.setAngle(a);
+      this.scene.time.delayedCall(delay, () => {
+        if (this.crumbleSprite) return resolve();
+        // Size the crumpling sheet to the card's own footprint so it reads as
+        // this paper crumpling (not a wide, compressed strip).
+        this.crumbleSprite = this.scene.add
+          .sprite(0, 0, CRUMBLE.key, 0)
+          .setDisplaySize(this._w * 1.15, this._h * 1.15)
+          .setDepth(ZOrder.FEEDBACK);
+        this.add(this.crumbleSprite);
+        this.crumbleSprite.play(CRUMBLE.anim);
+        this.crumbleSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          // Hide the card content, leave the crumpled ball.
+          this.label?.setVisible(false);
+          this.picture?.setVisible(false);
+          this.letter.setVisible(false);
+          this.pad.setVisible(false);
+          this.rings.setVisible(false);
+          this.mark?.setVisible(false);
           resolve();
-        },
+        });
       });
     });
   }

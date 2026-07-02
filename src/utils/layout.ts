@@ -1,3 +1,17 @@
+// Arabic glyphs (diacritics, and tails on letters like ج ح خ ي) reach above and
+// below the Latin line box that Phaser's canvas text measures, so they get
+// clipped top & bottom. Padding the text canvas vertically by a fraction of the
+// font size gives them room. Call after any setFontSize on Arabic text.
+export const ARABIC_PAD_RATIO = 0.22;
+
+export function padArabic(text: Phaser.GameObjects.Text, ratio = ARABIC_PAD_RATIO) {
+  const raw = text.style.fontSize as string | number;
+  const fs = typeof raw === "string" ? parseInt(raw, 10) : raw || 0;
+  const pad = Math.ceil(fs * ratio);
+  text.setPadding(2, pad, 2, pad);
+  return text;
+}
+
 // Dynamic text sizing: grow/shrink a Text object's font size so it fills as much
 // of the given box as possible while wrapping to fit within both width and height.
 // Mirrors the measure-loop approach used in the previous game.
@@ -14,12 +28,15 @@ export function fitText(
   text.setScale(1);
 
   // Binary search for the largest size that fits within maxWidth x maxHeight.
+  // Vertical padding is applied each step so the fit accounts for the extra
+  // room Arabic glyphs need (see padArabic) and never overflows the box.
   let lo = min;
   let hi = max;
   let best = min;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     text.setFontSize(mid);
+    padArabic(text);
     text.setWordWrapWidth(maxWidth);
     if (text.displayWidth <= maxWidth && text.displayHeight <= maxHeight) {
       best = mid;
@@ -29,6 +46,7 @@ export function fitText(
     }
   }
   text.setFontSize(best);
+  padArabic(text);
   text.setWordWrapWidth(maxWidth);
   return best;
 }

@@ -5,6 +5,7 @@ import { SKIN_FILES, DEFAULT_SKIN, skinPathFor } from "@/config/skin";
 import { collectImagePaths, setGameData, type GameData } from "@/core/data";
 import { State } from "@/core/state";
 import { loadConfig } from "@/utils/config";
+import { padArabic } from "@/utils/layout";
 
 export class LoadingScene extends Scene {
   private barBg!: Phaser.GameObjects.Graphics;
@@ -54,6 +55,11 @@ export class LoadingScene extends Scene {
       this.load.image(`th-${d}`, `${d}.webp`)
     );
     this.load.image("th-deco-headphone", "deco-headphone.webp");
+
+    // Answer-choice paper faces (randomised per card).
+    this.load.setPath("new");
+    this.load.image("answer-paper-a", "squaretilefacefront2.2omlhykjxvfoqykwnjknhaq2.png");
+    this.load.image("answer-paper-b", "squaretilefacefront3.2u7ckjjvlm11jno7hutjcfw2.png");
 
     // UI icons (from the previous game), used bottom-corner like the source.
     this.load.setPath("assets/ui");
@@ -114,6 +120,7 @@ export class LoadingScene extends Scene {
     }
     this.cameras.main.setBackgroundColor("#b8895a");
     this.label.setFontSize(Math.max(20, Math.round(height * 0.04)));
+    padArabic(this.label);
     this.label.setPosition(width / 2, height / 2 - height * 0.08);
     this.drawBar(this.load.progress);
   }

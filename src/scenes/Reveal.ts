@@ -69,11 +69,28 @@ export class RevealScene extends Scene {
     this.handleResponsive();
 
     this.panel.setScale(0);
-    this.tweens.add({ targets: this.panel, scale: 1, duration: 280, ease: "Back.easeOut" });
+    this.tweens.add({
+      targets: this.panel,
+      scale: 1,
+      duration: 280,
+      ease: "Back.easeOut",
+      // Once snapped in, sway gently to the left and smoothly back to rest.
+      onComplete: () => this.settle(this.panel.x),
+    });
 
     // Tap anywhere to continue (after a short grace so the reveal is seen).
     this.time.delayedCall(450, () => {
       this.input.once(Phaser.Input.Events.POINTER_DOWN, () => this.close());
+    });
+  }
+
+  private settle(restX: number) {
+    this.tweens.add({
+      targets: this.panel,
+      x: restX - restX * 0.08,
+      duration: 260,
+      ease: "Sine.easeInOut",
+      yoyo: true,
     });
   }
 

@@ -11,10 +11,12 @@ import { fitScreen } from "@/utils/responsive";
 import { fitText } from "@/utils/layout";
 import { setInteractive } from "@/utils/interactive";
 import { arabicNum } from "@/utils/arabic";
+import { AnimationManager } from "@/libs/animation";
 
 // Results shown on a real notepad on the wood desk (matching the theme).
 export class CompleteScene extends Scene {
   private responsive?: ResponsiveHandler;
+  private anim!: AnimationManager;
   private overlay!: Phaser.GameObjects.Rectangle;
   private panel!: Phaser.GameObjects.Container;
   private pad!: Phaser.GameObjects.Image;
@@ -35,8 +37,9 @@ export class CompleteScene extends Scene {
 
   create() {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
+    this.anim = new AnimationManager(this);
 
-    this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.3).setDepth(ZOrder.OVERLAY - 1);
+    this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.3).setDepth(ZOrder.OVERLAY - 1).setAlpha(0);
     this.panel = this.add.container(0, 0).setDepth(ZOrder.OVERLAY);
 
     this.pad = this.add.image(0, 0, THEME.pad("white")).setOrigin(0.5);
@@ -73,12 +76,43 @@ export class CompleteScene extends Scene {
     setInteractive(this.button, this.input);
     this.button.on(Phaser.Input.Events.POINTER_OVER, () => this.button.setScale(1.05));
     this.button.on(Phaser.Input.Events.POINTER_OUT, () => this.button.setScale(1));
-    this.button.on(Phaser.Input.Events.POINTER_DOWN, () => this.restart());
+    this.button.on(Phaser.Input.Events.POINTER_DOWN, () =>
+      this.anim.playButtonPress(this.button).then(() => this.restart())
+    );
 
     this.handleResponsive();
 
-    this.panel.setScale(0);
-    this.tweens.add({ targets: this.panel, scale: 1, duration: 360, ease: "Back.easeOut" });
+    // Win / lose orchestration.
+    const isQuiz = getMode(getGameData()) === "quiz";
+    const win = isQuiz ? State.score / Math.max(1, total) >= 0.5 : true;
+    const [w, h] = fitScreen(this.scale);
+    const center = { x: w / 2, y: h / 2 };
+
+    // 1) Dim the background in (no instant appear).
+    this.tweens.add({ targets: this.overlay, alpha: 0.45, duration: 320, ease: "Sine.easeOut" });
+
+    // 2) Hide the pieces that will animate in after the popup lands.
+    this.button.setScale(0).setAlpha(0);
+    if (isQuiz) this.scoreText.setText(`${arabicNum(total)} / ${arabicNum(0)}`);
+
+    // 3) Popup entrance, then the celebration / commiseration sequence.
+    this.anim.showPopup(this.panel, { sfx: "sfx-open" }).then(() => {
+      if (win) this.anim.playWin({ center });
+      else this.anim.playLose();
+
+      if (isQuiz) {
+        this.time.delayedCall(200, () =>
+          this.anim.countUp(this.scoreText, State.score, {
+            format: (n) => `${arabicNum(total)} / ${arabicNum(n)}`,
+          })
+        );
+      } else {
+        this.time.delayedCall(200, () => this.anim.playTextBounce(this.scoreText));
+      }
+
+      // 4) Button appears sequentially after the score settles.
+      this.time.delayedCall(700, () => this.anim.sequentialAppear([this.button]));
+    });
   }
 
   private restart() {

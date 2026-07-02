@@ -10,6 +10,7 @@ import { fitScreen } from "@/utils/responsive";
 import { fitText, fitImage } from "@/utils/layout";
 import { setInteractive } from "@/utils/interactive";
 import { AudioManager } from "@/libs/audio";
+import { AnimationManager } from "@/libs/animation";
 
 interface QuestionSceneData {
   index: number;
@@ -31,7 +32,9 @@ export class QuestionScene extends Scene {
   private responsive?: ResponsiveHandler;
   private sceneData!: QuestionSceneData;
   private question!: Question;
+  private anim!: AnimationManager;
   private answered = false;
+  private started = false; // becomes true once the board lands (choices + timer begin)
 
   private overlay!: Phaser.GameObjects.Rectangle;
   private panel!: Phaser.GameObjects.Container;
@@ -45,6 +48,7 @@ export class QuestionScene extends Scene {
   private timerRemaining = 0;
   private timerBar?: Phaser.GameObjects.Graphics;
   private timerW = 0;
+  private timerX = 0;
   private timerY = 0;
 
   constructor() {
@@ -55,6 +59,7 @@ export class QuestionScene extends Scene {
     this.sceneData = data;
     this.question = data.question;
     this.answered = false;
+    this.started = false;
     this.buttons = [];
     this.timerBar = undefined;
     this.timerTotal = Math.max(0, getGameData().timerSeconds ?? 0);
@@ -64,6 +69,7 @@ export class QuestionScene extends Scene {
 
   create() {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
+    this.anim = new AnimationManager(this);
 
     if (!this.anims.exists(CRUMBLE.anim)) {
       this.anims.create({
@@ -112,8 +118,9 @@ export class QuestionScene extends Scene {
     });
 
     if (this.timerTotal > 0) {
-      this.timerBar = this.add.graphics();
-      this.panel.add(this.timerBar);
+      // Fixed to the top of the screen — NOT parented to the panel, so it stays
+      // put while the board slides in and out.
+      this.timerBar = this.add.graphics().setDepth(ZOrder.FEEDBACK);
     }
 
     this.handleResponsive();
@@ -124,13 +131,39 @@ export class QuestionScene extends Scene {
     const origin = this.sceneData.origin;
     const ox = origin ? origin.x : w / 2;
     const oy = origin ? origin.y : h / 2;
+    // The clicked box grows into the board, drifts slowly to the left, then
+    // glides slowly back to its resting spot on the right — no snap or bounce.
+    // The answer cards stay hidden until it settles.
+    const restX = w / 2;
+    const leftX = restX - restX * 0.28;
+    this.buttons.forEach((b) => b.setAlpha(0));
     this.panel.setPosition(ox, oy).setScale(0.12);
-    this.tweens.add({ targets: this.panel, x: w / 2, y: h / 2, scale: 1, duration: 360, ease: "Back.easeOut" });
-    this.buttons.forEach((b, i) => b.dropIn(220 + i * 90));
+    this.tweens.add({
+      targets: this.panel,
+      x: leftX,
+      y: h / 2,
+      scale: 1,
+      duration: 650,
+      ease: "Sine.easeOut",
+      onComplete: () =>
+        this.tweens.add({
+          targets: this.panel,
+          x: restX,
+          duration: 800,
+          ease: "Sine.easeInOut",
+          onComplete: () => this.begin(),
+        }),
+    });
+  }
+
+  // Answers fall from the top onto their places, and the timer starts.
+  private begin() {
+    this.started = true;
+    this.buttons.forEach((b, i) => b.dropIn(i * 110));
   }
 
   update(_time: number, delta: number) {
-    if (this.answered || this.timerTotal <= 0) return;
+    if (this.answered || !this.started || this.timerTotal <= 0) return;
     this.timerRemaining -= delta / 1000;
     if (this.timerRemaining <= 0) {
       this.timerRemaining = 0;
@@ -149,46 +182,58 @@ export class QuestionScene extends Scene {
 
     const correct = isCorrectChoice(this.question, button.choice);
     AudioManager.playSFX(this.sound, correct ? "sfx-correct" : "sfx-wrong");
-
-    await button.playSelected(correct ? "correct" : "incorrect");
-
-    if (!correct) {
-      this.buttons.forEach((b) => {
-        if (b === button) return;
-        if (isCorrectChoice(this.question, b.choice)) {
-          b.setStatus("correct");
-          b.pulse();
-        } else {
-          b.dim();
-        }
-      });
-    }
-
-    this.time.delayedCall(correct ? 450 : 1200, () => this.close(button.choice));
+    await this.resolveBoard(button, correct);
+    this.close(button.choice);
   }
 
   private async onTimeout() {
     this.answered = true;
     this.buttons.forEach((b) => b.disableInteractive());
     AudioManager.playSFX(this.sound, "sfx-wrong");
+    await this.resolveBoard(null, false);
+    this.close(null);
+  }
+
+  // Shared feedback (matches the source): stamp the picked card and the correct
+  // answer, fade the rest away, pause, then every paper crumples together.
+  private async resolveBoard(selected: ChoiceButton | null, correct: boolean) {
+    const correctBtn = this.buttons.find((b) => isCorrectChoice(this.question, b.choice));
+    // Quick camera feedback (colour flash; a shake when wrong) on top of the
+    // card fade/crumple sequence.
+    if (correct) this.anim.flash(0x2fa85f, 0.3);
+    else {
+      this.anim.flash(0xc0392b, 0.3);
+      this.anim.shake(220, 0.006);
+    }
+    if (selected) selected.stamp(correct ? "correct" : "incorrect");
+    if (correctBtn) correctBtn.stamp("correct");
+    // Everything that isn't the picked card or the correct answer fades out.
     this.buttons.forEach((b) => {
-      if (isCorrectChoice(this.question, b.choice)) {
-        b.setStatus("correct");
-        b.pulse();
-      } else {
-        b.dim();
-      }
+      if (b !== correctBtn && b !== selected) b.fadeOut();
     });
-    this.time.delayedCall(1300, () => this.close(null));
+
+    // Let the result register, then all papers crumple at the same time.
+    await this.wait(850);
+    await Promise.all(this.buttons.map((b) => b.crumple(0)));
+    await this.wait(250);
+  }
+
+  private wait(ms: number): Promise<void> {
+    return new Promise((resolve) => this.time.delayedCall(ms, resolve));
   }
 
   private close(choice: Choice | null) {
+    // The board shrinks back toward the box's grid spot, which then reappears
+    // showing the word + tick (or a lock).
+    const o = this.sceneData.origin;
     this.tweens.add({
       targets: this.panel,
-      scale: 0,
+      x: o ? o.x : this.panel.x,
+      y: o ? o.y : this.panel.y,
+      scale: 0.08,
       alpha: 0,
-      duration: 220,
-      ease: "Sine.easeIn",
+      duration: 300,
+      ease: "Back.easeIn",
       onComplete: () => {
         this.sceneData.onResolve(choice);
         this.scene.stop();
@@ -211,10 +256,11 @@ export class QuestionScene extends Scene {
     const H = height * 0.94;
     const landscape = width / height > 1.15;
 
-    // Timer strip across the very top.
-    const timerReserve = this.timerTotal > 0 ? Math.max(14, H * 0.028) : 0;
+    // Timer strip pinned across the top, centered — same width as before, just
+    // in absolute screen coordinates so it no longer rides with the panel.
     this.timerW = W - 20;
-    this.timerY = -H / 2 - timerReserve;
+    this.timerX = (width - this.timerW) / 2;
+    this.timerY = 10;
     this.drawTimer();
 
     let notepadRect: Rect;
@@ -257,13 +303,14 @@ export class QuestionScene extends Scene {
     const n = this.buttons.length;
     const cols = n <= 2 ? (rect.w / rect.h > 1 ? 2 : 1) : 2;
     const rows = Math.ceil(n / cols);
-    const gapX = rect.w * 0.04;
-    const gapY = rect.h * 0.05;
+    // Bigger cards, packed closer together.
+    const gapX = rect.w * 0.015;
+    const gapY = rect.h * 0.025;
     const cellW = (rect.w - gapX * (cols - 1)) / cols;
     const cellH = (rect.h - gapY * (rows - 1)) / rows;
-    const size = Math.min(cellW, cellH * 1.05);
-    const cardW = size * 0.94;
-    const cardH = Math.min(cellH * 0.96, cardW * 0.92);
+    const size = Math.min(cellW, cellH * 1.15);
+    const cardW = size * 0.99;
+    const cardH = Math.min(cellH * 0.99, cardW * 0.95);
 
     this.buttons.forEach((button, i) => {
       const r = Math.floor(i / cols);
@@ -283,7 +330,7 @@ export class QuestionScene extends Scene {
     if (!this.timerBar || this.timerW <= 0) return;
     const frac = Phaser.Math.Clamp(this.timerRemaining / this.timerTotal, 0, 1);
     const h = Math.max(8, this.timerW * 0.012);
-    const x = -this.timerW / 2;
+    const x = this.timerX;
     const color = frac > 0.5 ? 0x2e9e5b : frac > 0.25 ? 0xe1a92b : 0xc0392b;
     this.timerBar.clear();
     this.timerBar.fillStyle(0x000000, 0.25).fillRoundedRect(x, this.timerY, this.timerW, h, h / 2);
