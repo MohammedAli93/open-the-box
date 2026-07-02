@@ -3,8 +3,6 @@ import RexUIPlugin from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import { LoadingScene } from "@/scenes/Loading";
 import { TitleScene } from "@/scenes/Title";
 import { GridScene } from "@/scenes/Grid";
-import { QuestionScene } from "@/scenes/Question";
-import { RevealScene } from "@/scenes/Reveal";
 import { CompleteScene } from "@/scenes/Complete";
 import { MenuScene } from "@/scenes/Menu";
 import { AudioScene } from "@/scenes/Audio";
@@ -19,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: "100%",
     height: "100%",
   },
-  scene: [LoadingScene, GridScene, QuestionScene, RevealScene, CompleteScene, MenuScene, AudioScene, TitleScene, UIScene],
+  scene: [LoadingScene, GridScene, CompleteScene, MenuScene, AudioScene, TitleScene, UIScene],
   plugins: {
     scene: [{ key: "rexUI", plugin: RexUIPlugin, mapping: "rexUI" }],
   },

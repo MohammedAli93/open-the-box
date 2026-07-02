@@ -9,7 +9,7 @@ import { updateConfig } from "@/utils/config";
 import { fitScreen } from "@/utils/responsive";
 import { setInteractive } from "@/utils/interactive";
 
-const GAMEPLAY = ["Grid", "Question", "Reveal", "Complete"];
+const GAMEPLAY = ["Grid", "Complete"];
 
 // Ported from the previous game: the bottom-right audio window with BGM/SFX
 // toggles, adapted to the new AudioManager.

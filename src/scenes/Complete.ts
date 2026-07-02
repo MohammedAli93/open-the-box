@@ -116,7 +116,7 @@ export class CompleteScene extends Scene {
   }
 
   private restart() {
-    ["UI", "Question", "Reveal"].forEach((k) => this.scene.stop(k));
+    ["UI"].forEach((k) => this.scene.stop(k));
     this.scene.stop();
     this.scene.start("Grid");
   }

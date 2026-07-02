@@ -44,7 +44,7 @@ export class UIScene extends Phaser.Scene {
     menu.on(Phaser.Input.Events.POINTER_OUT, () => menu.setAlpha(0.75));
     menu.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.scene.setVisible(false);
-      ["Grid", "Question", "Reveal", "Complete"].forEach((k) => this.scene.pause(k));
+      ["Grid", "Complete"].forEach((k) => this.scene.pause(k));
       this.scene.launch("Menu");
     });
 
@@ -64,7 +64,7 @@ export class UIScene extends Phaser.Scene {
     audio.on(Phaser.Input.Events.POINTER_OUT, () => audio.setAlpha(0.75));
     audio.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.scene.setVisible(false);
-      ["Grid", "Question", "Reveal", "Complete"].forEach((k) => this.scene.pause(k));
+      ["Grid", "Complete"].forEach((k) => this.scene.pause(k));
       this.scene.launch("Audio");
     });
 
@@ -133,7 +133,7 @@ export class UIScene extends Phaser.Scene {
     if (State.timedOut) return;
     State.timedOut = true;
     State.timerActive = false;
-    ["Grid", "Question", "Reveal"].forEach((k) => this.scene.isActive(k) && this.scene.pause(k));
+    ["Grid"].forEach((k) => this.scene.isActive(k) && this.scene.pause(k));
     AudioManager.playSFX(this.sound, "sfx-wrong");
     this.scene.launch("Complete");
   }

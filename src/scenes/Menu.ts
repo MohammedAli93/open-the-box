@@ -8,7 +8,7 @@ import { AudioManager } from "@/libs/audio";
 import { fitScreen } from "@/utils/responsive";
 import { setInteractive } from "@/utils/interactive";
 
-const GAMEPLAY = ["Grid", "Question", "Reveal", "Complete"];
+const GAMEPLAY = ["Grid", "Complete"];
 
 // Ported from the previous game: the bottom-left menu window (Submit / Restart /
 // Resume), adapted to the new scenes.
@@ -104,14 +104,13 @@ export class MenuScene extends Scene {
   }
 
   onSubmit() {
-    ["Question", "Reveal"].forEach((k) => this.scene.stop(k));
     this.scene.setVisible(true, "UI");
     this.scene.stop();
     this.scene.launch("Complete"); // Grid stays paused underneath
   }
 
   onRestart() {
-    ["Question", "Reveal", "Complete", "UI"].forEach((k) => this.scene.stop(k));
+    ["Complete", "UI"].forEach((k) => this.scene.stop(k));
     this.scene.stop();
     this.scene.start("Grid");
   }

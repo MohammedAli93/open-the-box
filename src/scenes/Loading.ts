@@ -108,6 +108,12 @@ export class LoadingScene extends Scene {
     this.load.start();
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.drawStatic, this);
+    // The ScaleManager is game-global, so this scene's RESIZE handler outlives
+    // the scene unless we remove it — otherwise a later resize runs drawStatic
+    // against a torn-down camera and throws.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.drawStatic, this);
+    });
     this.cameras.main.fadeIn(300);
   }
 
