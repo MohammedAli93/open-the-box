@@ -129,7 +129,7 @@ export class QuestionScene extends Scene {
       this.timerBar = this.add.graphics().setDepth(ZOrder.OVERLAY);
       this.timerText = this.add
         .text(0, 0, String(Math.ceil(this.timerRemaining)), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
-        .setOrigin(0, 0.5)
+        .setOrigin(1, 0.5)
         .setDepth(ZOrder.OVERLAY + 1);
     }
 
@@ -272,16 +272,16 @@ export class QuestionScene extends Scene {
     const H = height * 0.94;
     const landscape = width / height > 1.15;
 
-    // Thin countdown bar across the top, seconds number at the left.
-    this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.009, 5, 12);
-    const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.026, 14, 30);
-    const margin = Math.max(10, width * 0.012);
-    const numY = margin + numSize / 2;
-    this.timerText?.setFontSize(Math.round(numSize)).setPosition(margin, numY);
-    const numW = this.timerText?.width ?? 0;
-    this.timerX = margin + numW + margin * 0.8;
-    this.timerW = Math.max(1, width - this.timerX - margin);
-    this.timerY = numY - this.timerH / 2;
+    // Countdown bar: ~half the screen wide, centered near the top; a bit thicker,
+    // with a big seconds number just to its left.
+    this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.014, 8, 22);
+    const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 24, 56);
+    const topMargin = Math.max(12, height * 0.02);
+    const cyBar = topMargin + numSize / 2;
+    this.timerW = width * 0.5;
+    this.timerX = (width - this.timerW) / 2;
+    this.timerY = cyBar - this.timerH / 2;
+    this.timerText?.setFontSize(Math.round(numSize)).setPosition(this.timerX - Math.max(10, width * 0.01), cyBar);
     this.drawTimer();
 
     let notepadRect: Rect;

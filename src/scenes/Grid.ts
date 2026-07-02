@@ -225,15 +225,14 @@ export class GridScene extends Scene {
     const cellH = areaH / rows;
     const size = Math.min(cellW, cellH) * 0.86;
 
-    // Full-grid left edge; a partial last row is left-aligned (its empty slot is
-    // on the right, under box 1) — matching the source layout.
-    const gridStartX = width / 2 - (cols * cellW) / 2 + cellW / 2;
     this.boxes.forEach((box, i) => {
       const r = Math.floor(i / cols);
       const c = i % cols;
+      // A partial last row is centered under the full rows.
       const itemsInRow = r === rows - 1 ? n - cols * (rows - 1) : cols;
+      const rowStartX = width / 2 - (itemsInRow * cellW) / 2 + cellW / 2;
       // RTL: box 1 is top-right, numbering runs right-to-left (like the source).
-      const x = gridStartX + (itemsInRow - 1 - c) * cellW;
+      const x = rowStartX + (itemsInRow - 1 - c) * cellW;
       const y = marginTop + cellH / 2 + r * cellH;
       box.setHome(x, y, size);
     });

@@ -110,15 +110,19 @@ export class UIScene extends Phaser.Scene {
     // in fullscreen (like the source), and tucked tight into the corners.
     const place = () => {
       const [width, height] = fitScreen(this.scale);
-      // Small, consistent icons tucked into the corners with a safe margin so
-      // nothing gets clipped; they scale gently with the screen.
-      const icon = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 22 * DPR, 40 * DPR);
-      const pad = Phaser.Math.Clamp(height * 0.02, 12, 44);
+      // Small icons pinned to the very bottom corners (bottom of the page, incl.
+      // fullscreen); the sound icon is a touch smaller.
+      const icon = Phaser.Math.Clamp(Math.min(width, height) * 0.036, 18 * DPR, 30 * DPR);
+      const sound = icon * 0.85;
+      const pad = Phaser.Math.Clamp(height * 0.013, 8, 22);
       const cy = height - pad - icon / 2;
 
       menu.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(pad + icon / 2, cy);
       fullscreen.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(width - pad - icon / 2, cy);
-      audio.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(fullscreen.x - icon - pad, cy);
+      audio
+        .setOrigin(0.5)
+        .setDisplaySize(sound, sound)
+        .setPosition(fullscreen.x - icon / 2 - pad - sound / 2, cy - icon * 0.18);
 
       if (this.scoreIcon && this.scoreText) {
         const s = icon;
