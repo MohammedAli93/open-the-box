@@ -133,6 +133,22 @@
         { "type": "image", "content": "assets/questions/fruit-grapes.png" }
       ],
       "correct": { "type": "image", "content": "assets/questions/fruit-orange.png" }
+    },
+    {
+      "type": "both",
+      "text": "كَمْ فَاكِهَةً تَرَى؟",
+      "image": [
+        "assets/questions/fruit-apple.png",
+        "assets/questions/fruit-banana.png"
+      ],
+      "color": "#e23f7e",
+      "choices": [
+        { "type": "text", "content": "وَاحِدَة" },
+        { "type": "text", "content": "اثْنَتَان" },
+        { "type": "text", "content": "ثَلَاث" },
+        { "type": "text", "content": "أَرْبَع" }
+      ],
+      "correct": { "type": "text", "content": "اثْنَتَان" }
     }
   ]
 }

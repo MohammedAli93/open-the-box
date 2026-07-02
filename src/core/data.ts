@@ -11,10 +11,18 @@ export interface Choice {
 export interface Question {
   type: ContentKind;
   text: string | null;
-  image: string | null; // image path/key, or null
+  // One image (string) OR many (string[]) OR none (null). Many are laid out in a
+  // row on the pad.
+  image: string | string[] | null;
   color: string; // "#rrggbb" — the box color
   choices: Choice[];
   correct: Choice; // matched against a choice by `content`
+}
+
+// Normalises a question's image field to a flat list of paths (0, 1, or many).
+export function questionImages(q: Question): string[] {
+  if (!q.image) return [];
+  return (Array.isArray(q.image) ? q.image : [q.image]).filter(Boolean);
 }
 
 export interface GameData {
@@ -49,7 +57,7 @@ export function getGameData(): GameData {
 export function collectImagePaths(data: GameData): string[] {
   const set = new Set<string>();
   for (const q of data.questions) {
-    if (q.image && (q.type === "image" || q.type === "both")) set.add(q.image);
+    if (q.type === "image" || q.type === "both") for (const p of questionImages(q)) set.add(p);
     for (const c of q.choices) if (c.type === "image" && c.content) set.add(c.content);
     if (q.correct.type === "image" && q.correct.content) set.add(q.correct.content);
   }

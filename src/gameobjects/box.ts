@@ -25,9 +25,9 @@ export class Box extends Phaser.GameObjects.Container {
   private padBody: Phaser.GameObjects.Image; // lined pad revealed on open
   private content: Phaser.GameObjects.Container; // word/image printed on the pad
   private wordText?: Phaser.GameObjects.Text;
-  private picture?: Phaser.GameObjects.Image;
+  private pictures: Phaser.GameObjects.Image[] = []; // one or many images on the pad
   private contentText: string | null = null;
-  private contentImage: string | null = null;
+  private contentImages: string[] = [];
 
   private cover: Phaser.GameObjects.Container; // folds up
   private coverImg: Phaser.GameObjects.Image;
@@ -67,9 +67,11 @@ export class Box extends Phaser.GameObjects.Container {
   }
 
   // Print the item on the pad, hidden under the cover until it folds open.
-  setContent(text: string | null, image?: string | null) {
+  // `images` may be a single path, many paths (laid out in a row), or none.
+  setContent(text: string | null, images?: string | string[] | null) {
     this.contentText = text ?? null;
-    this.contentImage = image ?? null;
+    this.contentImages =
+      images == null ? [] : (Array.isArray(images) ? images : [images]).filter(Boolean);
 
     if (this.contentText) {
       if (!this.wordText) {
@@ -86,10 +88,13 @@ export class Box extends Phaser.GameObjects.Container {
         this.wordText.setText(this.contentText);
       }
     }
-    if (this.contentImage && !this.picture) {
-      this.picture = this.scene.add.image(0, 0, this.contentImage).setOrigin(0.5);
-      this.content.add(this.picture);
-    }
+    // (Re)build one image object per path.
+    this.pictures.forEach((p) => p.destroy());
+    this.pictures = this.contentImages.map((key) => {
+      const im = this.scene.add.image(0, 0, key).setOrigin(0.5);
+      this.content.add(im);
+      return im;
+    });
     this.applySize(this.curSize);
   }
 
@@ -127,42 +132,65 @@ export class Box extends Phaser.GameObjects.Container {
     this.layoutContent(w, h);
   }
 
-  // The item printed on the pad. When just opened it sits centred; once answered
-  // correctly the word moves up and a green tick sits below it.
+  // Lays the item out on the pad in non-overlapping vertical bands that adapt to
+  // whatever is present (text, one/many images, and — when answered — a tick),
+  // and to dynamic content (long text / tall images shrink to fit their band).
   private layoutContent(w: number, h: number) {
     const hasWord = !!this.wordText && !!this.contentText;
-    const hasImg = !!this.picture && !!this.contentImage;
+    const hasImgs = this.pictures.length > 0;
 
+    // Writable area on the pad: below the spiral rings, above the bottom edge.
+    const top = -h * 0.28;
+    let bottom = h * 0.42;
+
+    // When answered-correct, reserve the bottom band for the green tick.
     if (this.revealed) {
-      if (hasWord) {
-        fitText(this.wordText!, w * 0.82, h * 0.46, { max: Math.round(h * 0.24) });
-        this.wordText!.setVisible(true).setPosition(0, hasImg ? -h * 0.28 : -h * 0.08);
-      }
-      if (hasImg) {
-        fitImage(this.picture!, w * 0.6, h * 0.4);
-        this.picture!.setVisible(true).setPosition(0, hasWord ? -h * 0.02 : -h * 0.1);
-      }
       if (!this.tick) {
         this.tick = this.scene.add.image(0, 0, "correct-big").setOrigin(0.5);
         this.add(this.tick);
       }
-      const ts = w * (hasWord || hasImg ? 0.34 : 0.5);
-      this.tick
-        .setVisible(true)
-        .setDisplaySize(ts, ts * (this.tick.height / this.tick.width))
-        .setPosition(0, hasWord || hasImg ? h * 0.3 : 0);
-      return;
+      const bare = !hasWord && !hasImgs;
+      const ts = w * (bare ? 0.5 : 0.3);
+      const th = ts * (this.tick.height / this.tick.width);
+      const tickCy = bare ? 0 : h * 0.34;
+      this.tick.setVisible(true).setDisplaySize(ts, th).setPosition(0, tickCy);
+      if (!bare) bottom = tickCy - th / 2 - h * 0.03;
+    } else if (this.tick) {
+      this.tick.setVisible(false);
     }
 
-    const both = hasWord && hasImg;
-    if (hasImg) {
-      fitImage(this.picture!, w * 0.72, both ? h * 0.42 : h * 0.6);
-      this.picture!.setVisible(true).setPosition(0, both ? -h * 0.16 : h * 0.04);
+    const areaH = Math.max(1, bottom - top);
+    const midY = (top + bottom) / 2;
+
+    if (hasImgs && hasWord) {
+      // Images band on top, text band below, separated by a gap — never overlap.
+      const gap = areaH * 0.06;
+      const imgH = areaH * 0.6 - gap / 2;
+      const txtH = areaH * 0.4 - gap / 2;
+      this.layoutImages(w * 0.82, imgH, top + imgH / 2);
+      fitText(this.wordText!, w * 0.82, txtH, { max: Math.round(txtH * 0.9) });
+      this.wordText!.setVisible(true).setPosition(0, bottom - txtH / 2);
+    } else if (hasImgs) {
+      this.layoutImages(w * 0.86, areaH * 0.94, midY);
+      this.wordText?.setVisible(false);
+    } else if (hasWord) {
+      fitText(this.wordText!, w * 0.82, areaH * 0.92, { max: Math.round(areaH * 0.7) });
+      this.wordText!.setVisible(true).setPosition(0, midY);
     }
-    if (hasWord) {
-      fitText(this.wordText!, w * 0.74, both ? h * 0.3 : h * 0.6, { max: Math.round(h * 0.5) });
-      this.wordText!.setVisible(true).setPosition(0, both ? h * 0.22 : h * 0.06);
-    }
+  }
+
+  // Lays one or many images in a centred row within (maxW × maxH) at height cy,
+  // each scaled to fit its cell (aspect-preserving).
+  private layoutImages(maxW: number, maxH: number, cy: number) {
+    const n = this.pictures.length;
+    if (n === 0) return;
+    const gap = n > 1 ? maxW * 0.04 : 0;
+    const cellW = (maxW - gap * (n - 1)) / n;
+    const startX = -maxW / 2 + cellW / 2;
+    this.pictures.forEach((img, i) => {
+      fitImage(img, cellW, maxH);
+      img.setVisible(true).setPosition(startX + i * (cellW + gap), cy);
+    });
   }
 
   setHome(x: number, y: number, size: number) {
@@ -294,9 +322,8 @@ export class Box extends Phaser.GameObjects.Container {
       this.scene.tweens.add({
         targets: this,
         x: offX,
-        angle: 8,
-        duration: 380,
-        ease: "Back.easeIn",
+        duration: 560,
+        ease: "Sine.easeIn", // smooth glide off the desk, not an abrupt swipe
         onComplete: () => {
           // Reset for the reform slide-in (position is set by slideIn).
           this.setScale(1).setAngle(0);

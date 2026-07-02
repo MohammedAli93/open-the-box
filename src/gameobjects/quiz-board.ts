@@ -115,11 +115,8 @@ export class QuizBoard {
   // every paper crumples together (matches the source).
   private async resolveBoard(selected: ChoiceButton, correct: boolean) {
     const correctBtn = this.buttons.find((b) => isCorrectChoice(this.question, b.choice));
-    if (correct) this.anim.flash(0x2fa85f, 0.3);
-    else {
-      this.anim.flash(0xc0392b, 0.3);
-      this.anim.shake(220, 0.006);
-    }
+    // A wrong answer gives a small camera shake — no full-screen colour flash.
+    if (!correct) this.anim.shake(220, 0.006);
     selected.stamp(correct ? "correct" : "incorrect");
     if (correctBtn) correctBtn.stamp("correct");
     this.buttons.forEach((b) => {
