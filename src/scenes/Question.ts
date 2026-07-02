@@ -67,8 +67,9 @@ export class QuestionScene extends Scene {
     this.timerBar = undefined;
     this.timerText = undefined;
     this.timerTotal = Math.max(0, getGameData().timerSeconds ?? 0);
-    // Continue the shared countdown across questions; refill it if it hasn't
-    // started yet or ran out (a correct answer also refills it — see choose()).
+    // Shared countdown that carries across questions: a correct answer refills it
+    // (see choose()), a wrong one lets it keep draining; if it hits 0 the game
+    // ends. Start fresh only the first time.
     this.timerRemaining = State.timerRemaining > 0 ? State.timerRemaining : this.timerTotal;
     this.responsive = new ResponsiveHandler(this);
   }
@@ -204,6 +205,8 @@ export class QuestionScene extends Scene {
 
   private async onTimeout() {
     this.answered = true;
+    // The shared countdown ran out — the game is over (loss).
+    State.timedOut = true;
     this.buttons.forEach((b) => b.disableInteractive());
     AudioManager.playSFX(this.sound, "sfx-wrong");
     await this.resolveBoard(null, false);

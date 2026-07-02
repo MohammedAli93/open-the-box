@@ -155,17 +155,26 @@ export class GridScene extends Scene {
     const correct = choice ? isCorrectChoice(question, choice) : false;
     State.answers.set(box.index, { selectedContent: choice?.content ?? "", correct });
     this.closeBox(box, (b) => b.markAnswered(correct, question.text));
+    // If the shared countdown ran out, the game is over now (loss).
+    if (State.timedOut) {
+      this.endGame();
+      return;
+    }
     this.checkComplete(State.answers.size);
   }
 
   private checkComplete(done: number) {
-    if (done >= this.boxes.length) {
-      this.time.delayedCall(700, () => {
-        AudioManager.playSFX(this.sound, "sfx-complete");
-        this.scene.launch("Complete");
-        this.scene.pause();
-      });
-    }
+    if (done >= this.boxes.length) this.endGame();
+  }
+
+  private endGame() {
+    this.busy = true;
+    this.boxes.forEach((b) => b.disableInteractive());
+    this.time.delayedCall(700, () => {
+      AudioManager.playSFX(this.sound, "sfx-complete");
+      this.scene.launch("Complete");
+      this.scene.pause();
+    });
   }
 
   private handleResponsive() {
