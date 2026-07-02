@@ -44,11 +44,9 @@ export class UIScene extends Phaser.Scene {
     fullscreen.on(Phaser.Input.Events.POINTER_OVER, () => fullscreen.setAlpha(1.0));
     fullscreen.on(Phaser.Input.Events.POINTER_OUT, () => fullscreen.setAlpha(0.75));
     fullscreen.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      if (fullscreen.texture.key === "ui-fullscreen") {
-        this.scale.startFullscreen();
-      } else {
-        this.scale.stopFullscreen();
-      }
+      // Toggle on the actual state so it always exits fullscreen when in it.
+      if (this.scale.isFullscreen) this.scale.stopFullscreen();
+      else this.scale.startFullscreen();
     });
 
     const audio = this.add.image(0, 0, "ui-audio").setName("audio").setAlpha(0.75).setDepth(ZOrder.UI);
@@ -92,11 +90,12 @@ export class UIScene extends Phaser.Scene {
   }
 
   handleFullscreen() {
-    // Only swap the icon — Phaser's RESIZE mode fires its own resize on the
-    // fullscreen change, which re-runs the layout (matches the previous game).
     const fullscreen = this.children.getByName("fullscreen") as Phaser.GameObjects.Image;
     if (!fullscreen) return;
     fullscreen.setTexture(this.scale.isFullscreen ? "ui-fullscreen-exit" : "ui-fullscreen");
+    // Re-run every scene's layout against the new size so panels (e.g. the Start
+    // screen) fill the fullscreen.
+    this.scale.refresh();
   }
 
   handleResponsive() {
@@ -113,16 +112,12 @@ export class UIScene extends Phaser.Scene {
       // Small icons pinned to the very bottom corners (bottom of the page, incl.
       // fullscreen); the sound icon is a touch smaller.
       const icon = Phaser.Math.Clamp(Math.min(width, height) * 0.036, 18 * DPR, 30 * DPR);
-      const sound = icon * 0.85;
       const pad = Phaser.Math.Clamp(height * 0.013, 8, 22);
       const cy = height - pad - icon / 2;
 
       menu.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(pad + icon / 2, cy);
       fullscreen.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(width - pad - icon / 2, cy);
-      audio
-        .setOrigin(0.5)
-        .setDisplaySize(sound, sound)
-        .setPosition(fullscreen.x - icon / 2 - pad - sound / 2, cy - icon * 0.18);
+      audio.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(fullscreen.x - icon - pad, cy);
 
       if (this.scoreIcon && this.scoreText) {
         const s = icon;

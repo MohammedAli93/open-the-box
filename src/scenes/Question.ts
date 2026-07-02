@@ -129,7 +129,7 @@ export class QuestionScene extends Scene {
       this.timerBar = this.add.graphics().setDepth(ZOrder.OVERLAY);
       this.timerText = this.add
         .text(0, 0, String(Math.ceil(this.timerRemaining)), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
-        .setOrigin(1, 0.5)
+        .setOrigin(0, 0)
         .setDepth(ZOrder.OVERLAY + 1);
     }
 
@@ -272,16 +272,15 @@ export class QuestionScene extends Scene {
     const H = height * 0.94;
     const landscape = width / height > 1.15;
 
-    // Countdown bar: ~half the screen wide, centered near the top; a bit thicker,
-    // with a big seconds number just to its left.
+    // Big seconds number in the top-left corner; the countdown bar ~half the
+    // screen wide, centered and raised near the very top.
     this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.014, 8, 22);
     const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 24, 56);
-    const topMargin = Math.max(12, height * 0.02);
-    const cyBar = topMargin + numSize / 2;
+    const margin = Math.max(10, width * 0.012);
+    this.timerText?.setFontSize(Math.round(numSize)).setPosition(margin, margin);
     this.timerW = width * 0.5;
     this.timerX = (width - this.timerW) / 2;
-    this.timerY = cyBar - this.timerH / 2;
-    this.timerText?.setFontSize(Math.round(numSize)).setPosition(this.timerX - Math.max(10, width * 0.01), cyBar);
+    this.timerY = Math.max(8, height * 0.012);
     this.drawTimer();
 
     let notepadRect: Rect;

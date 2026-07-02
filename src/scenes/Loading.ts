@@ -63,12 +63,13 @@ export class LoadingScene extends Scene {
 
     // UI icons (from the previous game), used bottom-corner like the source.
     this.load.setPath("assets/ui");
-    // White icons, to match the source (Wordwall) controls.
-    this.load.svg("ui-menu", "menu-white.svg", { scale: 3 });
-    this.load.svg("ui-fullscreen", "fullscreen-white.svg", { scale: 60 });
-    this.load.svg("ui-fullscreen-exit", "fullscreen-exit-white.svg", { scale: 60 });
-    this.load.svg("ui-audio", "audio-white.svg", { scale: 1.4 });
-    this.load.svg("ui-audio-muted", "audio-muted-white.svg", { scale: 60 });
+    // White icons, to match the source (Wordwall) controls. All 24×24 viewBox,
+    // loaded at a consistent scale so they render crisp and even-sized.
+    this.load.svg("ui-menu", "menu-white.svg", { scale: 4 });
+    this.load.svg("ui-fullscreen", "fullscreen-white.svg", { scale: 4 });
+    this.load.svg("ui-fullscreen-exit", "fullscreen-exit-white.svg", { scale: 4 });
+    this.load.svg("ui-audio", "audio-white.svg", { scale: 4 });
+    this.load.svg("ui-audio-muted", "audio-muted-white.svg", { scale: 4 });
     this.load.setPath("assets");
     // Icons for the audio (BGM/SFX) menu, from the previous game.
     this.load.svg("audio-icon", "audio/audio.svg", { scale: 2 });
