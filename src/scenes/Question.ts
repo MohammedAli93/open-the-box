@@ -47,11 +47,12 @@ export class QuestionScene extends Scene {
 
   private timerTotal = 0;
   private timerRemaining = 0;
-  private timerBg?: Phaser.GameObjects.Graphics; // circular countdown badge (top-left)
-  private timerText?: Phaser.GameObjects.Text; // seconds remaining
+  private timerBar?: Phaser.GameObjects.Graphics; // thin countdown bar across the top
+  private timerText?: Phaser.GameObjects.Text; // seconds remaining, at the left
   private timerX = 0;
   private timerY = 0;
-  private timerR = 0;
+  private timerW = 0;
+  private timerH = 0;
 
   constructor() {
     super("Question");
@@ -63,7 +64,7 @@ export class QuestionScene extends Scene {
     this.answered = false;
     this.started = false;
     this.buttons = [];
-    this.timerBg = undefined;
+    this.timerBar = undefined;
     this.timerText = undefined;
     this.timerTotal = Math.max(0, getGameData().timerSeconds ?? 0);
     // Continue the shared countdown across questions; refill it if it hasn't
@@ -123,13 +124,12 @@ export class QuestionScene extends Scene {
     });
 
     if (this.timerTotal > 0) {
-      // A round countdown badge with the seconds remaining, pinned top-left and
-      // above everything else in the scene (like the source). NOT parented to the
-      // panel, so it holds still while the board animates.
-      this.timerBg = this.add.graphics().setDepth(ZOrder.OVERLAY);
+      // A thin countdown bar across the top, with the seconds at the left. Pinned
+      // and above everything (NOT parented to the panel) so it holds still.
+      this.timerBar = this.add.graphics().setDepth(ZOrder.OVERLAY);
       this.timerText = this.add
         .text(0, 0, String(Math.ceil(this.timerRemaining)), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
-        .setOrigin(0.5)
+        .setOrigin(0, 0.5)
         .setDepth(ZOrder.OVERLAY + 1);
     }
 
@@ -272,11 +272,16 @@ export class QuestionScene extends Scene {
     const H = height * 0.94;
     const landscape = width / height > 1.15;
 
-    // Countdown badge pinned to the top-left, sized to the screen.
-    this.timerR = Phaser.Math.Clamp(Math.min(width, height) * 0.05, 26, 60);
-    this.timerX = this.timerR + Math.max(14, width * 0.015);
-    this.timerY = this.timerR + Math.max(14, height * 0.02);
-    this.timerText?.setFontSize(Math.round(this.timerR * 1.1)).setPosition(this.timerX, this.timerY);
+    // Thin countdown bar across the top, seconds number at the left.
+    this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.009, 5, 12);
+    const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.026, 14, 30);
+    const margin = Math.max(10, width * 0.012);
+    const numY = margin + numSize / 2;
+    this.timerText?.setFontSize(Math.round(numSize)).setPosition(margin, numY);
+    const numW = this.timerText?.width ?? 0;
+    this.timerX = margin + numW + margin * 0.8;
+    this.timerW = Math.max(1, width - this.timerX - margin);
+    this.timerY = numY - this.timerH / 2;
     this.drawTimer();
 
     let notepadRect: Rect;
@@ -343,20 +348,13 @@ export class QuestionScene extends Scene {
   }
 
   private drawTimer() {
-    if (!this.timerBg || !this.timerText || this.timerR <= 0) return;
+    if (!this.timerBar || !this.timerText || this.timerW <= 0) return;
     const frac = Phaser.Math.Clamp(this.timerRemaining / this.timerTotal, 0, 1);
     const color = frac > 0.5 ? 0x2e9e5b : frac > 0.25 ? 0xe1a92b : 0xc0392b;
-    const r = this.timerR;
-    const start = -Math.PI / 2;
-    const end = start + Math.PI * 2 * frac;
-    this.timerBg.clear();
-    // Drop shadow + dark track + coloured remaining-time arc.
-    this.timerBg.fillStyle(0x000000, 0.28).fillCircle(this.timerX + 2, this.timerY + 3, r);
-    this.timerBg.fillStyle(0x2a2a2a, 0.85).fillCircle(this.timerX, this.timerY, r);
-    this.timerBg.lineStyle(Math.max(4, r * 0.16), color, 1);
-    this.timerBg.beginPath();
-    this.timerBg.arc(this.timerX, this.timerY, r * 0.82, start, end, false);
-    this.timerBg.strokePath();
+    const h = this.timerH;
+    this.timerBar.clear();
+    this.timerBar.fillStyle(0x000000, 0.28).fillRoundedRect(this.timerX, this.timerY, this.timerW, h, h / 2);
+    this.timerBar.fillStyle(color, 1).fillRoundedRect(this.timerX, this.timerY, Math.max(h, this.timerW * frac), h, h / 2);
     this.timerText.setText(String(Math.ceil(this.timerRemaining))).setColor("#ffffff");
   }
 

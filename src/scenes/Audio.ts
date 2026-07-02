@@ -6,7 +6,6 @@ import { LANG } from "@/config/lang";
 import { FONT_FAMILY } from "@/config/text";
 import { State } from "@/core/state";
 import { updateConfig } from "@/utils/config";
-import { AudioManager } from "@/libs/audio";
 import { fitScreen } from "@/utils/responsive";
 import { setInteractive } from "@/utils/interactive";
 
@@ -80,13 +79,11 @@ export class AudioScene extends Scene {
       return button;
     };
 
+    // Only sound effects — no background music.
     const buttons = this.rexUI.add.buttons({
       orientation: "vertical",
       space: { item: 10 },
-      buttons: [
-        createButton(LANG.AUDIO_BGM, (button) => this.onBGM(button), State.bgm),
-        createButton(LANG.AUDIO_SFX, (button) => this.onSFX(button), State.sfx),
-      ],
+      buttons: [createButton(LANG.AUDIO_SFX, (button) => this.onSFX(button), State.sfx)],
     });
     window.add(buttons);
 
@@ -109,13 +106,6 @@ export class AudioScene extends Scene {
   private setIcon(button: Sizer, on: boolean) {
     const icon = button.getElement("icon") as Phaser.GameObjects.Image;
     icon.setTexture(on ? "audio-icon" : "audio-icon-muted").setAlpha(on ? 0.75 : 0.25);
-  }
-
-  onBGM(button: Sizer) {
-    State.bgm = !State.bgm;
-    updateConfig({ bgm: State.bgm });
-    AudioManager.applyMuteState();
-    this.setIcon(button, State.bgm);
   }
 
   onSFX(button: Sizer) {

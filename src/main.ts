@@ -12,12 +12,12 @@ import { UIScene } from "@/scenes/UI";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.CANVAS,
-  width: 1024,
-  height: 768,
-  parent: "game-container",
   backgroundColor: "#b8895a",
   scale: {
     mode: Phaser.Scale.RESIZE,
+    parent: "game-container",
+    width: "100%",
+    height: "100%",
   },
   scene: [LoadingScene, GridScene, QuestionScene, RevealScene, CompleteScene, MenuScene, AudioScene, TitleScene, UIScene],
   plugins: {
