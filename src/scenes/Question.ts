@@ -35,7 +35,6 @@ export class QuestionScene extends Scene {
   private question!: Question;
   private anim!: AnimationManager;
   private answered = false;
-  private started = false; // becomes true once the board lands (choices + timer begin)
 
   private overlay!: Phaser.GameObjects.Rectangle;
   private panel!: Phaser.GameObjects.Container;
@@ -45,15 +44,6 @@ export class QuestionScene extends Scene {
   private picture?: Phaser.GameObjects.Image;
   private buttons: ChoiceButton[] = [];
 
-  private timerTotal = 0;
-  private timerRemaining = 0;
-  private timerBar?: Phaser.GameObjects.Graphics; // thin countdown bar across the top
-  private timerText?: Phaser.GameObjects.Text; // seconds remaining, at the left
-  private timerX = 0;
-  private timerY = 0;
-  private timerW = 0;
-  private timerH = 0;
-
   constructor() {
     super("Question");
   }
@@ -62,15 +52,7 @@ export class QuestionScene extends Scene {
     this.sceneData = data;
     this.question = data.question;
     this.answered = false;
-    this.started = false;
     this.buttons = [];
-    this.timerBar = undefined;
-    this.timerText = undefined;
-    this.timerTotal = Math.max(0, getGameData().timerSeconds ?? 0);
-    // Shared countdown that carries across questions: a correct answer refills it
-    // (see choose()), a wrong one lets it keep draining; if it hits 0 the game
-    // ends. Start fresh only the first time.
-    this.timerRemaining = State.timerRemaining > 0 ? State.timerRemaining : this.timerTotal;
     this.responsive = new ResponsiveHandler(this);
   }
 
@@ -124,16 +106,6 @@ export class QuestionScene extends Scene {
       this.buttons.push(button);
     });
 
-    if (this.timerTotal > 0) {
-      // A thin countdown bar across the top, with the seconds at the left. Pinned
-      // and above everything (NOT parented to the panel) so it holds still.
-      this.timerBar = this.add.graphics().setDepth(ZOrder.OVERLAY);
-      this.timerText = this.add
-        .text(0, 0, String(Math.ceil(this.timerRemaining)), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
-        .setOrigin(0, 0)
-        .setDepth(ZOrder.OVERLAY + 1);
-    }
-
     this.handleResponsive();
 
     // Open: the notepad grows out of the clicked box's position, then the
@@ -168,24 +140,9 @@ export class QuestionScene extends Scene {
     });
   }
 
-  // Answers fall from the top onto their places, and the timer starts.
+  // Answers fall from the top onto their places.
   private begin() {
-    this.started = true;
     this.buttons.forEach((b, i) => b.dropIn(i * 130));
-  }
-
-  update(_time: number, delta: number) {
-    if (this.answered || !this.started || this.timerTotal <= 0) return;
-    this.timerRemaining -= delta / 1000;
-    if (this.timerRemaining <= 0) {
-      this.timerRemaining = 0;
-      State.timerRemaining = 0;
-      this.drawTimer();
-      this.onTimeout();
-      return;
-    }
-    State.timerRemaining = this.timerRemaining; // persist so it carries to the next question
-    this.drawTimer();
   }
 
   private async choose(button: ChoiceButton) {
@@ -195,22 +152,12 @@ export class QuestionScene extends Scene {
     this.input.setDefaultCursor("default");
 
     const correct = isCorrectChoice(this.question, button.choice);
-    // A correct answer refills the shared countdown; a wrong one lets it keep
-    // draining into the next questions until something is answered right.
-    if (correct) State.timerRemaining = this.timerTotal;
+    // A correct answer refills the global countdown (handled in UI). A wrong one
+    // leaves it draining.
+    if (correct) State.timerRemaining = Math.max(0, getGameData().timerSeconds ?? 0);
     AudioManager.playSFX(this.sound, correct ? "sfx-correct" : "sfx-wrong");
     await this.resolveBoard(button, correct);
     this.close(button.choice);
-  }
-
-  private async onTimeout() {
-    this.answered = true;
-    // The shared countdown ran out — the game is over (loss).
-    State.timedOut = true;
-    this.buttons.forEach((b) => b.disableInteractive());
-    AudioManager.playSFX(this.sound, "sfx-wrong");
-    await this.resolveBoard(null, false);
-    this.close(null);
   }
 
   // Shared feedback (matches the source): stamp the picked card and the correct
@@ -275,17 +222,6 @@ export class QuestionScene extends Scene {
     const H = height * 0.94;
     const landscape = width / height > 1.15;
 
-    // Big seconds number in the top-left corner; the countdown bar ~half the
-    // screen wide, centered and raised near the very top.
-    this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.014, 8, 22);
-    const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 24, 56);
-    const margin = Math.max(10, width * 0.012);
-    this.timerText?.setFontSize(Math.round(numSize)).setPosition(margin, margin);
-    this.timerW = width * 0.5;
-    this.timerX = (width - this.timerW) / 2;
-    this.timerY = Math.max(8, height * 0.012);
-    this.drawTimer();
-
     let notepadRect: Rect;
     let choiceRect: Rect;
     if (landscape) {
@@ -347,17 +283,6 @@ export class QuestionScene extends Scene {
       button.setPosition(x, y);
       button.layout(cardW, cardH);
     });
-  }
-
-  private drawTimer() {
-    if (!this.timerBar || !this.timerText || this.timerW <= 0) return;
-    const frac = Phaser.Math.Clamp(this.timerRemaining / this.timerTotal, 0, 1);
-    const color = frac > 0.5 ? 0x2e9e5b : frac > 0.25 ? 0xe1a92b : 0xc0392b;
-    const h = this.timerH;
-    this.timerBar.clear();
-    this.timerBar.fillStyle(0x000000, 0.28).fillRoundedRect(this.timerX, this.timerY, this.timerW, h, h / 2);
-    this.timerBar.fillStyle(color, 1).fillRoundedRect(this.timerX, this.timerY, Math.max(h, this.timerW * frac), h, h / 2);
-    this.timerText.setText(String(Math.ceil(this.timerRemaining))).setColor("#ffffff");
   }
 
   private onShutdown() {

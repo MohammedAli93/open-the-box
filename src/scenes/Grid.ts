@@ -66,9 +66,12 @@ export class GridScene extends Scene {
     this.scene.launch("Title");
     this.scene.pause();
 
-    // When Play is pressed the grid resumes — enable play and fly the props out.
+    // When Play is pressed the grid resumes — enable play, start the global
+    // countdown, and fly the props out.
     this.events.once(Phaser.Scenes.Events.RESUME, () => {
       this.playable = true;
+      State.timerActive = true;
+      State.timerRemaining = Math.max(0, getGameData().timerSeconds ?? 0);
       this.flyIntroOut();
     });
   }
@@ -155,11 +158,6 @@ export class GridScene extends Scene {
     const correct = choice ? isCorrectChoice(question, choice) : false;
     State.answers.set(box.index, { selectedContent: choice?.content ?? "", correct });
     this.closeBox(box, (b) => b.markAnswered(correct, question.text));
-    // If the shared countdown ran out, the game is over now (loss).
-    if (State.timedOut) {
-      this.endGame();
-      return;
-    }
     this.checkComplete(State.answers.size);
   }
 

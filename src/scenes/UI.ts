@@ -5,6 +5,7 @@ import { State } from "@/core/state";
 import { FONT_FAMILY } from "@/config/text";
 import { getGameData, getMode } from "@/core/data";
 import { ZOrder } from "@/config/zorder";
+import { AudioManager } from "@/libs/audio";
 
 // Ported from the previous game: menu / fullscreen / audio icon buttons in the
 // bottom corners (menu → Menu overlay, audio → Audio overlay). Plus the live
@@ -15,6 +16,14 @@ export class UIScene extends Phaser.Scene {
   private scoreText?: Phaser.GameObjects.Text;
   private lastScore = -1;
   private showScore = true;
+  // Global countdown (quiz mode): runs continuously across the grid + questions.
+  private timerTotal = 0;
+  private timerBar?: Phaser.GameObjects.Graphics;
+  private timerText?: Phaser.GameObjects.Text;
+  private timerX = 0;
+  private timerY = 0;
+  private timerW = 0;
+  private timerH = 0;
 
   constructor() {
     super("UI");
@@ -69,14 +78,64 @@ export class UIScene extends Phaser.Scene {
         .setDepth(ZOrder.UI);
     }
 
+    // Global countdown bar + seconds (quiz mode only).
+    this.timerTotal = this.showScore ? Math.max(0, getGameData().timerSeconds ?? 0) : 0;
+    if (this.timerTotal > 0) {
+      this.timerBar = this.add.graphics().setDepth(ZOrder.UI).setVisible(false);
+      this.timerText = this.add
+        .text(0, 0, String(this.timerTotal), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
+        .setOrigin(0, 0)
+        .setDepth(ZOrder.UI)
+        .setVisible(false);
+    }
+
     this.handleResponsive();
   }
 
-  update() {
+  update(_time: number, delta: number) {
     if (this.showScore && this.scoreText && State.score !== this.lastScore) {
       this.lastScore = State.score;
       this.scoreText.setText(String(this.lastScore));
     }
+    this.updateTimer(delta);
+  }
+
+  private updateTimer(delta: number) {
+    if (!this.timerBar || !this.timerText) return;
+    // Runs only once the game has started, while the UI is visible (hidden during
+    // the menu/audio overlays) and the results aren't up.
+    const active = State.timerActive && this.scene.isVisible() && !this.scene.isActive("Complete");
+    this.timerBar.setVisible(active);
+    this.timerText.setVisible(active);
+    if (!active) return;
+    State.timerRemaining -= delta / 1000;
+    if (State.timerRemaining <= 0) {
+      State.timerRemaining = 0;
+      this.drawTimer();
+      this.gameOver();
+      return;
+    }
+    this.drawTimer();
+  }
+
+  private drawTimer() {
+    if (!this.timerBar || !this.timerText || this.timerW <= 0) return;
+    const frac = Phaser.Math.Clamp(State.timerRemaining / Math.max(1, this.timerTotal), 0, 1);
+    const color = frac > 0.5 ? 0x2e9e5b : frac > 0.25 ? 0xe1a92b : 0xc0392b;
+    const h = this.timerH;
+    this.timerBar.clear();
+    this.timerBar.fillStyle(0x000000, 0.28).fillRoundedRect(this.timerX, this.timerY, this.timerW, h, h / 2);
+    this.timerBar.fillStyle(color, 1).fillRoundedRect(this.timerX, this.timerY, Math.max(h, this.timerW * frac), h, h / 2);
+    this.timerText.setText(String(Math.ceil(State.timerRemaining)));
+  }
+
+  private gameOver() {
+    if (State.timedOut) return;
+    State.timedOut = true;
+    State.timerActive = false;
+    ["Grid", "Question", "Reveal"].forEach((k) => this.scene.isActive(k) && this.scene.pause(k));
+    AudioManager.playSFX(this.sound, "sfx-wrong");
+    this.scene.launch("Complete");
   }
 
   onShutdown() {
@@ -125,6 +184,18 @@ export class UIScene extends Phaser.Scene {
         this.scoreText.setFontSize(Math.round(s * 0.85));
         this.scoreText.setPosition(width - pad - this.scoreText.width / 2, pad + s / 2);
         this.scoreIcon.setPosition(this.scoreText.x - this.scoreText.width / 2 - s * 0.7, pad + s / 2);
+      }
+
+      if (this.timerBar && this.timerText) {
+        // Seconds number top-left; half-width bar centered and raised near the top.
+        this.timerH = Phaser.Math.Clamp(Math.min(width, height) * 0.014, 8, 22);
+        const numSize = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 24, 56);
+        const m = Math.max(10, width * 0.012);
+        this.timerText.setFontSize(Math.round(numSize)).setPosition(m, m);
+        this.timerW = width * 0.5;
+        this.timerX = (width - this.timerW) / 2;
+        this.timerY = Math.max(8, height * 0.012);
+        this.drawTimer();
       }
     };
 
