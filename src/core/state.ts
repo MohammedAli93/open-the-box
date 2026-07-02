@@ -10,10 +10,14 @@ export class State {
   static opened = new Set<number>();
   static sfx = true;
   static bgm = true;
+  // Seconds left on the shared countdown. It carries across questions; a correct
+  // answer refills it, a wrong answer lets it keep draining. -1 = not started.
+  static timerRemaining = -1;
 
   static reset() {
     this.answers.clear();
     this.opened.clear();
+    this.timerRemaining = -1;
   }
 
   static get score() {

@@ -7,7 +7,6 @@ import { getGameData } from "@/core/data";
 import { fitScreen } from "@/utils/responsive";
 import { fitText, padArabic } from "@/utils/layout";
 import { setInteractive } from "@/utils/interactive";
-import { AudioManager } from "@/libs/audio";
 import { AnimationManager } from "@/libs/animation";
 
 // The Start screen shown over the (paused) grid: title, instruction and a blue
@@ -76,7 +75,7 @@ export class TitleScene extends Scene {
   }
 
   private start() {
-    AudioManager.startBGM(this.sound, "bgm");
+    // No background music — sound effects only.
     this.scene.stop();
     this.scene.resume("Grid");
   }

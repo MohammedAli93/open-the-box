@@ -3,6 +3,7 @@ import type RexUI from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import type Sizer from "phaser3-rex-plugins/templates/ui/sizer/Sizer";
 import { ResponsiveHandler } from "@/libs/responsive";
 import { LANG } from "@/config/lang";
+import { FONT_FAMILY } from "@/config/text";
 import { AudioManager } from "@/libs/audio";
 import { fitScreen } from "@/utils/responsive";
 import { setInteractive } from "@/utils/interactive";
@@ -52,7 +53,11 @@ export class MenuScene extends Scene {
       .setName("window");
 
     window.add(
-      this.add.text(0, 0, LANG.MENU_HEADER).setFontFamily("reddit-sands-regular").setFontSize(20).setAlpha(0.75),
+      this.add
+        .text(0, 0, LANG.MENU_HEADER, { fontFamily: FONT_FAMILY.REGULAR })
+        .setRTL(true)
+        .setFontSize(20)
+        .setAlpha(0.75),
       { align: "center" }
     );
     window.add(this.rexUI.add.roundRectangle(0, 0, 1, 1, 1, 0x000000, 0.5), { expand: true });
@@ -62,9 +67,8 @@ export class MenuScene extends Scene {
       const button = this.rexUI.add.label({
         background: bg,
         text: this.add
-          .text(0, 0, text)
-          .setFontFamily("reddit-sands-semibold")
-          .setFontStyle("bold")
+          .text(0, 0, text, { fontFamily: FONT_FAMILY.BOLD })
+          .setRTL(true)
           .setFontSize(28)
           .setAlpha(0.75),
         align: "center",

@@ -3,6 +3,7 @@ import type RexUI from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import type Sizer from "phaser3-rex-plugins/templates/ui/sizer/Sizer";
 import { ResponsiveHandler } from "@/libs/responsive";
 import { LANG } from "@/config/lang";
+import { FONT_FAMILY } from "@/config/text";
 import { State } from "@/core/state";
 import { updateConfig } from "@/utils/config";
 import { AudioManager } from "@/libs/audio";
@@ -58,9 +59,8 @@ export class AudioScene extends Scene {
       button.addBackground(bg);
       button.add(
         this.add
-          .text(0, 0, text)
-          .setFontFamily("reddit-sands-semibold")
-          .setFontStyle("bold")
+          .text(0, 0, text, { fontFamily: FONT_FAMILY.BOLD })
+          .setRTL(true)
           .setFontSize(28)
           .setAlpha(0.75)
       );

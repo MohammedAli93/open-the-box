@@ -92,12 +92,11 @@ export class UIScene extends Phaser.Scene {
   }
 
   handleFullscreen() {
+    // Only swap the icon — Phaser's RESIZE mode fires its own resize on the
+    // fullscreen change, which re-runs the layout (matches the previous game).
     const fullscreen = this.children.getByName("fullscreen") as Phaser.GameObjects.Image;
     if (!fullscreen) return;
     fullscreen.setTexture(this.scale.isFullscreen ? "ui-fullscreen-exit" : "ui-fullscreen");
-    // The manual canvas/DPR sizing in fitScreen must recompute against the new
-    // (fullscreen) window dimensions — refresh a few times as they settle.
-    [30, 150, 400].forEach((d) => this.time.delayedCall(d, () => this.scale.refresh()));
   }
 
   handleResponsive() {
@@ -107,31 +106,31 @@ export class UIScene extends Phaser.Scene {
     const fullscreen = this.children.getByName("fullscreen") as Phaser.GameObjects.Image;
     const audio = this.children.getByName("audio") as Phaser.GameObjects.Image;
 
-    const place = (mobile: boolean) => {
+    // Icons sized as a fraction of the screen so they scale with the window and
+    // in fullscreen (like the source), and tucked tight into the corners.
+    const place = () => {
       const [width, height] = fitScreen(this.scale);
-      const isIpad = width > 900 && height > 900;
-      const scale = mobile && !isIpad ? 0.5 * DPR : 1.0;
-      const offset = mobile ? 2 : 10;
+      // Small, consistent icons tucked into the corners with a safe margin so
+      // nothing gets clipped; they scale gently with the screen.
+      const icon = Phaser.Math.Clamp(Math.min(width, height) * 0.045, 22 * DPR, 40 * DPR);
+      const pad = Phaser.Math.Clamp(height * 0.02, 12, 44);
+      const cy = height - pad - icon / 2;
 
-      menu.setScale(scale).setPosition(offset + menu.displayWidth / 2, height - (offset + menu.displayHeight / 2));
-      fullscreen
-        .setScale(scale)
-        .setPosition(width - offset - fullscreen.displayWidth / 2, height - (offset + fullscreen.displayHeight / 2));
-      audio
-        .setScale(scale)
-        .setPosition(fullscreen.x - offset - audio.displayWidth, height - (offset + audio.displayHeight / 2));
+      menu.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(pad + icon / 2, cy);
+      fullscreen.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(width - pad - icon / 2, cy);
+      audio.setOrigin(0.5).setDisplaySize(icon, icon).setPosition(fullscreen.x - icon - pad, cy);
 
       if (this.scoreIcon && this.scoreText) {
-        const s = 40 * DPR;
+        const s = icon;
         this.scoreIcon.setDisplaySize(s, s);
-        this.scoreText.setFontSize(34 * DPR);
-        this.scoreText.setPosition(width - offset * 2 - this.scoreText.width / 2, offset * 2 + s / 2);
-        this.scoreIcon.setPosition(this.scoreText.x - this.scoreText.width / 2 - s * 0.7, offset * 2 + s / 2);
+        this.scoreText.setFontSize(Math.round(s * 0.85));
+        this.scoreText.setPosition(width - pad - this.scoreText.width / 2, pad + s / 2);
+        this.scoreIcon.setPosition(this.scoreText.x - this.scoreText.width / 2 - s * 0.7, pad + s / 2);
       }
     };
 
-    this.responsiveHandler.events.on("resize", () => place(false));
-    this.responsiveHandler.events.on("mobile", () => place(true));
+    this.responsiveHandler.events.on("resize", () => place());
+    this.responsiveHandler.events.on("mobile", () => place());
     this.responsiveHandler.trigger();
   }
 }

@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { ResponsiveHandler } from "@/libs/responsive";
 import { getGameData, isCorrectChoice, type Choice, type Question } from "@/core/data";
+import { State } from "@/core/state";
 import { ChoiceButton } from "@/gameobjects/choice-button";
 import { TEXT_COLORS, WORD_COLOR } from "@/config/colors";
 import { THEME, CRUMBLE } from "@/config/theme";
@@ -46,10 +47,11 @@ export class QuestionScene extends Scene {
 
   private timerTotal = 0;
   private timerRemaining = 0;
-  private timerBar?: Phaser.GameObjects.Graphics;
-  private timerW = 0;
+  private timerBg?: Phaser.GameObjects.Graphics; // circular countdown badge (top-left)
+  private timerText?: Phaser.GameObjects.Text; // seconds remaining
   private timerX = 0;
   private timerY = 0;
+  private timerR = 0;
 
   constructor() {
     super("Question");
@@ -61,9 +63,12 @@ export class QuestionScene extends Scene {
     this.answered = false;
     this.started = false;
     this.buttons = [];
-    this.timerBar = undefined;
+    this.timerBg = undefined;
+    this.timerText = undefined;
     this.timerTotal = Math.max(0, getGameData().timerSeconds ?? 0);
-    this.timerRemaining = this.timerTotal;
+    // Continue the shared countdown across questions; refill it if it hasn't
+    // started yet or ran out (a correct answer also refills it — see choose()).
+    this.timerRemaining = State.timerRemaining > 0 ? State.timerRemaining : this.timerTotal;
     this.responsive = new ResponsiveHandler(this);
   }
 
@@ -118,9 +123,14 @@ export class QuestionScene extends Scene {
     });
 
     if (this.timerTotal > 0) {
-      // Fixed to the top of the screen — NOT parented to the panel, so it stays
-      // put while the board slides in and out.
-      this.timerBar = this.add.graphics().setDepth(ZOrder.FEEDBACK);
+      // A round countdown badge with the seconds remaining, pinned top-left and
+      // above everything else in the scene (like the source). NOT parented to the
+      // panel, so it holds still while the board animates.
+      this.timerBg = this.add.graphics().setDepth(ZOrder.OVERLAY);
+      this.timerText = this.add
+        .text(0, 0, String(Math.ceil(this.timerRemaining)), { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
+        .setOrigin(0.5)
+        .setDepth(ZOrder.OVERLAY + 1);
     }
 
     this.handleResponsive();
@@ -131,25 +141,26 @@ export class QuestionScene extends Scene {
     const origin = this.sceneData.origin;
     const ox = origin ? origin.x : w / 2;
     const oy = origin ? origin.y : h / 2;
-    // The clicked box grows into the board, drifts slowly to the left, then
-    // glides slowly back to its resting spot on the right — no snap or bounce.
-    // The answer cards stay hidden until it settles.
+    // Box → board, slow and deliberate: (1) the board grows out of the clicked
+    // box with the word visible the whole time, drifting toward the left, then
+    // (2) glides smoothly across to its resting spot, and only then (3) the
+    // answer cards drop in. The cards stay hidden until it lands.
     const restX = w / 2;
-    const leftX = restX - restX * 0.28;
+    const leftX = restX - restX * 0.2;
     this.buttons.forEach((b) => b.setAlpha(0));
-    this.panel.setPosition(ox, oy).setScale(0.12);
+    this.panel.setPosition(ox, oy).setScale(0.3);
     this.tweens.add({
       targets: this.panel,
       x: leftX,
       y: h / 2,
       scale: 1,
-      duration: 650,
+      duration: 950,
       ease: "Sine.easeOut",
       onComplete: () =>
         this.tweens.add({
           targets: this.panel,
           x: restX,
-          duration: 800,
+          duration: 950,
           ease: "Sine.easeInOut",
           onComplete: () => this.begin(),
         }),
@@ -159,7 +170,7 @@ export class QuestionScene extends Scene {
   // Answers fall from the top onto their places, and the timer starts.
   private begin() {
     this.started = true;
-    this.buttons.forEach((b, i) => b.dropIn(i * 110));
+    this.buttons.forEach((b, i) => b.dropIn(i * 130));
   }
 
   update(_time: number, delta: number) {
@@ -167,10 +178,12 @@ export class QuestionScene extends Scene {
     this.timerRemaining -= delta / 1000;
     if (this.timerRemaining <= 0) {
       this.timerRemaining = 0;
+      State.timerRemaining = 0;
       this.drawTimer();
       this.onTimeout();
       return;
     }
+    State.timerRemaining = this.timerRemaining; // persist so it carries to the next question
     this.drawTimer();
   }
 
@@ -181,6 +194,9 @@ export class QuestionScene extends Scene {
     this.input.setDefaultCursor("default");
 
     const correct = isCorrectChoice(this.question, button.choice);
+    // A correct answer refills the shared countdown; a wrong one lets it keep
+    // draining into the next questions until something is answered right.
+    if (correct) State.timerRemaining = this.timerTotal;
     AudioManager.playSFX(this.sound, correct ? "sfx-correct" : "sfx-wrong");
     await this.resolveBoard(button, correct);
     this.close(button.choice);
@@ -256,11 +272,11 @@ export class QuestionScene extends Scene {
     const H = height * 0.94;
     const landscape = width / height > 1.15;
 
-    // Timer strip pinned across the top, centered — same width as before, just
-    // in absolute screen coordinates so it no longer rides with the panel.
-    this.timerW = W - 20;
-    this.timerX = (width - this.timerW) / 2;
-    this.timerY = 10;
+    // Countdown badge pinned to the top-left, sized to the screen.
+    this.timerR = Phaser.Math.Clamp(Math.min(width, height) * 0.05, 26, 60);
+    this.timerX = this.timerR + Math.max(14, width * 0.015);
+    this.timerY = this.timerR + Math.max(14, height * 0.02);
+    this.timerText?.setFontSize(Math.round(this.timerR * 1.1)).setPosition(this.timerX, this.timerY);
     this.drawTimer();
 
     let notepadRect: Rect;
@@ -327,14 +343,21 @@ export class QuestionScene extends Scene {
   }
 
   private drawTimer() {
-    if (!this.timerBar || this.timerW <= 0) return;
+    if (!this.timerBg || !this.timerText || this.timerR <= 0) return;
     const frac = Phaser.Math.Clamp(this.timerRemaining / this.timerTotal, 0, 1);
-    const h = Math.max(8, this.timerW * 0.012);
-    const x = this.timerX;
     const color = frac > 0.5 ? 0x2e9e5b : frac > 0.25 ? 0xe1a92b : 0xc0392b;
-    this.timerBar.clear();
-    this.timerBar.fillStyle(0x000000, 0.25).fillRoundedRect(x, this.timerY, this.timerW, h, h / 2);
-    this.timerBar.fillStyle(color, 1).fillRoundedRect(x, this.timerY, Math.max(h, this.timerW * frac), h, h / 2);
+    const r = this.timerR;
+    const start = -Math.PI / 2;
+    const end = start + Math.PI * 2 * frac;
+    this.timerBg.clear();
+    // Drop shadow + dark track + coloured remaining-time arc.
+    this.timerBg.fillStyle(0x000000, 0.28).fillCircle(this.timerX + 2, this.timerY + 3, r);
+    this.timerBg.fillStyle(0x2a2a2a, 0.85).fillCircle(this.timerX, this.timerY, r);
+    this.timerBg.lineStyle(Math.max(4, r * 0.16), color, 1);
+    this.timerBg.beginPath();
+    this.timerBg.arc(this.timerX, this.timerY, r * 0.82, start, end, false);
+    this.timerBg.strokePath();
+    this.timerText.setText(String(Math.ceil(this.timerRemaining))).setColor("#ffffff");
   }
 
   private onShutdown() {

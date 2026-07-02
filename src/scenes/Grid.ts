@@ -16,6 +16,7 @@ export class GridScene extends Scene {
   private introProps: Phaser.GameObjects.Image[] = []; // corner props that fly out on play
   private boxes: Box[] = [];
   private busy = false;
+  private playable = false; // becomes true only after Play is pressed
 
   constructor() {
     super("Grid");
@@ -26,6 +27,7 @@ export class GridScene extends Scene {
     State.reset();
     this.boxes = [];
     this.busy = false;
+    this.playable = false;
   }
 
   create() {
@@ -43,10 +45,10 @@ export class GridScene extends Scene {
       box.setDepth(ZOrder.BOX);
       setInteractive(box, this.input);
       box.on(Phaser.Input.Events.POINTER_OVER, () => {
-        if (!box.answered && !this.busy) box.setHovered(true);
+        if (this.playable && !box.answered && !this.busy) box.setHovered(true);
       });
       box.on(Phaser.Input.Events.POINTER_OUT, () => {
-        if (!box.answered && !this.busy) box.setHovered(false);
+        if (this.playable && !box.answered && !this.busy) box.setHovered(false);
       });
       box.on(Phaser.Input.Events.POINTER_DOWN, () => this.openBox(box, q));
       this.boxes.push(box);
@@ -64,8 +66,11 @@ export class GridScene extends Scene {
     this.scene.launch("Title");
     this.scene.pause();
 
-    // When Play is pressed the grid resumes — the corner props fly out one by one.
-    this.events.once(Phaser.Scenes.Events.RESUME, () => this.flyIntroOut());
+    // When Play is pressed the grid resumes — enable play and fly the props out.
+    this.events.once(Phaser.Scenes.Events.RESUME, () => {
+      this.playable = true;
+      this.flyIntroOut();
+    });
   }
 
   // Each corner prop shoots off its own corner of the screen, staggered and fast,
@@ -91,7 +96,7 @@ export class GridScene extends Scene {
   }
 
   private async openBox(box: Box, question: Question) {
-    if (this.busy || box.answered) return;
+    if (!this.playable || this.busy || box.answered) return;
     this.busy = true;
     box.setScale(1, 1);
     this.boxes.forEach((b) => b.disableInteractive());
