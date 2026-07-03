@@ -1,6 +1,6 @@
 import { Scene } from "phaser";
 import { ResponsiveHandler } from "@/libs/responsive";
-import { LANG } from "@/config/lang";
+import { LANG, isRTL } from "@/config/lang";
 import { FONT_FAMILY } from "@/config/text";
 import { ZOrder } from "@/config/zorder";
 import { getGameData } from "@/core/data";
@@ -39,17 +39,17 @@ export class TitleScene extends Scene {
     this.headerText = this.add
       .text(0, 0, LANG.START_HEADER, { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
       .setOrigin(0.5)
-      .setRTL(true)
+      .setRTL(isRTL())
       .setDepth(ZOrder.OVERLAY);
     this.title = this.add
       .text(0, 0, getGameData().title || "", { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff", align: "center" })
       .setOrigin(0.5)
-      .setRTL(true)
+      .setRTL(isRTL())
       .setDepth(ZOrder.OVERLAY);
     this.instruction = this.add
       .text(0, 0, LANG.START_INSTRUCTION, { fontFamily: FONT_FAMILY.REGULAR, color: "#e6e6e6", align: "center" })
       .setOrigin(0.5)
-      .setRTL(true)
+      .setRTL(isRTL())
       .setDepth(ZOrder.OVERLAY);
 
     this.playBg = this.add.graphics();
@@ -57,7 +57,7 @@ export class TitleScene extends Scene {
     this.playText = this.add
       .text(0, 0, LANG.START_PLAY, { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
       .setOrigin(0.5)
-      .setRTL(true);
+      .setRTL(isRTL());
     this.playBtn = this.add.container(0, 0, [this.playBg, this.playTri, this.playText]).setDepth(ZOrder.OVERLAY);
     setInteractive(this.playBtn, this.input);
     this.playBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.playBtn.setScale(1.05));

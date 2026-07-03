@@ -2,10 +2,12 @@ import { FONT_FAMILY } from "@/config/text";
 import { ZOrder } from "@/config/zorder";
 import { type Choice } from "@/core/data";
 import { fitText, fitImage, padArabic } from "@/utils/layout";
-import { arabicNum } from "@/utils/arabic";
+import { isRTL, locNum } from "@/config/lang";
 import { THEME, CRUMBLE, ANSWER_PAPERS } from "@/config/theme";
 
-const LABELS = ["أ", "ب", "ج", "د", "هـ", "و"];
+// Choice letters: Arabic abjad for RTL, Latin A/B/C/D for LTR.
+const LABELS_AR = ["أ", "ب", "ج", "د", "هـ", "و"];
+const LABELS_EN = ["A", "B", "C", "D", "E", "F"];
 
 // An answer choice on a real white spiral pad: a letter label + coloured answer
 // text (or image). Correct → green tick; wrong → red cross + the paper crumples.
@@ -29,17 +31,18 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
 
     this.pad = scene.add.image(0, 0, Phaser.Utils.Array.GetRandom(ANSWER_PAPERS)).setOrigin(0.5);
     this.rings = scene.add.image(0, 0, THEME.rings).setOrigin(0.5);
+    const labels = isRTL() ? LABELS_AR : LABELS_EN;
     this.letter = scene.add
-      .text(0, 0, LABELS[index] ?? arabicNum(index + 1), { fontFamily: FONT_FAMILY.BOLD, color: "#9aa0ab" })
+      .text(0, 0, labels[index] ?? locNum(index + 1), { fontFamily: FONT_FAMILY.BOLD, color: "#9aa0ab" })
       .setOrigin(0.5)
-      .setRTL(true);
+      .setRTL(isRTL());
     this.add([this.pad, this.rings, this.letter]);
 
     if (choice.type === "text") {
       this.label = scene.add
         .text(0, 0, choice.content, { fontFamily: FONT_FAMILY.BOLD, color: this.textColor, align: "center" })
         .setOrigin(0.5)
-        .setRTL(true);
+        .setRTL(isRTL());
       this.add(this.label);
     } else {
       this.picture = scene.add.image(0, 0, choice.content).setOrigin(0.5);
@@ -152,17 +155,17 @@ export class ChoiceButton extends Phaser.GameObjects.Container {
           .setDisplaySize(this._w * 1.15, this._h * 1.15)
           .setDepth(ZOrder.FEEDBACK);
         this.add(this.crumbleSprite);
+        // Hide the flat card RIGHT NOW — the crumbling ball replaces it as it
+        // scrunches. Waiting until the animation finished left the intact paper
+        // (and its tick) showing behind the ball the whole time.
+        this.label?.setVisible(false);
+        this.picture?.setVisible(false);
+        this.letter.setVisible(false);
+        this.pad.setVisible(false);
+        this.rings.setVisible(false);
+        this.mark?.setVisible(false);
         this.crumbleSprite.play(CRUMBLE.anim);
-        this.crumbleSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-          // Hide the card content, leave the crumpled ball.
-          this.label?.setVisible(false);
-          this.picture?.setVisible(false);
-          this.letter.setVisible(false);
-          this.pad.setVisible(false);
-          this.rings.setVisible(false);
-          this.mark?.setVisible(false);
-          resolve();
-        });
+        this.crumbleSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => resolve());
       });
     });
   }

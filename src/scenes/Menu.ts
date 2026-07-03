@@ -2,7 +2,7 @@ import { Scene } from "phaser";
 import type RexUI from "phaser3-rex-plugins/templates/ui/ui-plugin.js";
 import type Sizer from "phaser3-rex-plugins/templates/ui/sizer/Sizer";
 import { ResponsiveHandler } from "@/libs/responsive";
-import { LANG } from "@/config/lang";
+import { LANG, isRTL } from "@/config/lang";
 import { FONT_FAMILY } from "@/config/text";
 import { AudioManager } from "@/libs/audio";
 import { fitScreen } from "@/utils/responsive";
@@ -55,7 +55,7 @@ export class MenuScene extends Scene {
     window.add(
       this.add
         .text(0, 0, LANG.MENU_HEADER, { fontFamily: FONT_FAMILY.REGULAR })
-        .setRTL(true)
+        .setRTL(isRTL())
         .setFontSize(20)
         .setAlpha(0.75),
       { align: "center" }
@@ -68,7 +68,7 @@ export class MenuScene extends Scene {
         background: bg,
         text: this.add
           .text(0, 0, text, { fontFamily: FONT_FAMILY.BOLD })
-          .setRTL(true)
+          .setRTL(isRTL())
           .setFontSize(28)
           .setAlpha(0.75),
         align: "center",

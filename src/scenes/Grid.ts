@@ -7,7 +7,7 @@ import { QuizBoard } from "@/gameobjects/quiz-board";
 import { ZOrder } from "@/config/zorder";
 import { THEME, DECOS } from "@/config/theme";
 import { FONT_FAMILY } from "@/config/text";
-import { LANG } from "@/config/lang";
+import { LANG, isRTL } from "@/config/lang";
 import { fitScreen, DPR } from "@/utils/responsive";
 import { setInteractive } from "@/utils/interactive";
 import { AudioManager } from "@/libs/audio";
@@ -85,7 +85,7 @@ export class GridScene extends Scene {
     this.introProps.push(this.headphones);
 
     this.handleResponsive();
-    this.boxes.forEach((b, i) => b.popIn(i * 70));
+    this.boxes.forEach((b, i) => b.popIn(this.stagger(i, 70, 1400)));
 
     this.scene.launch("UI");
     // Show the Start screen over the paused grid; play resumes it (and starts BGM).
@@ -139,7 +139,7 @@ export class GridScene extends Scene {
     this.boxes.forEach((b) => b.disableInteractive());
 
     const others = this.boxes.filter((b) => b !== box);
-    others.forEach((b, i) => b.slideOut(i * 22));
+    others.forEach((b, i) => b.slideOut(this.stagger(i, 22, 700)));
     box.setDepth(ZOrder.BOX_LIFTED);
 
     // Cover folds up in place — the item is already printed on the pad beneath it.
@@ -177,7 +177,7 @@ export class GridScene extends Scene {
       this.hint = this.add
         .text(0, 0, LANG.REVEAL_NEXT, { fontFamily: FONT_FAMILY.REGULAR, color: "#7a6a4a" })
         .setOrigin(0.5)
-        .setRTL(true)
+        .setRTL(isRTL())
         .setDepth(ZOrder.QUESTION);
     }
     this.hint.setVisible(true);
@@ -236,7 +236,7 @@ export class GridScene extends Scene {
   // look while the OTHER boxes slide back down to reform the grid around it.
   private finish(box: Box, markFn: (b: Box) => void, done: number) {
     markFn(box);
-    this.boxes.filter((b) => b !== box).forEach((b, i) => b.slideIn(i * 22));
+    this.boxes.filter((b) => b !== box).forEach((b, i) => b.slideIn(this.stagger(i, 22, 700)));
     this.boxes.forEach((b) => {
       if (!b.answered) setInteractive(b, this.input);
     });
@@ -246,6 +246,13 @@ export class GridScene extends Scene {
 
   private wait(ms: number): Promise<void> {
     return new Promise((resolve) => this.time.delayedCall(ms, resolve));
+  }
+
+  // Per-box animation delay that scales down as the deck grows, so a 200-card
+  // grid still opens/reforms in about `maxWindow` ms instead of many seconds.
+  private stagger(i: number, base: number, maxWindow: number): number {
+    const n = Math.max(1, this.boxes.length);
+    return i * Math.min(base, maxWindow / n);
   }
 
   private checkComplete(done: number) {
@@ -325,8 +332,11 @@ export class GridScene extends Scene {
       // A partial last row is centered under the full rows.
       const itemsInRow = r === rows - 1 ? n - cols * (rows - 1) : cols;
       const rowStartX = width / 2 - (itemsInRow * cellW) / 2 + cellW / 2;
-      // RTL: box 1 is top-right, numbering runs right-to-left (like the source).
-      const x = rowStartX + (itemsInRow - 1 - c) * cellW;
+      // Numbering follows the language direction: RTL → box 1 top-right (like the
+      // source); LTR (English) → box 1 top-left, running left-to-right.
+      const x = isRTL()
+        ? rowStartX + (itemsInRow - 1 - c) * cellW
+        : rowStartX + c * cellW;
       const y = marginTop + cellH / 2 + r * cellH;
       // While a box is out on the board (or others are slid off), only store the
       // slot so the reform lands correctly — don't yank anything back to the grid.

@@ -3,6 +3,7 @@ import { setInteractive } from "@/utils/interactive";
 import { DPR, fitScreen } from "@/utils/responsive";
 import { State } from "@/core/state";
 import { FONT_FAMILY } from "@/config/text";
+import { isRTL } from "@/config/lang";
 import { getGameData, getMode } from "@/core/data";
 import { ZOrder } from "@/config/zorder";
 import { AudioManager } from "@/libs/audio";
@@ -35,8 +36,12 @@ export class UIScene extends Phaser.Scene {
 
   create() {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
-    this.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, this.handleFullscreen, this);
-    this.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, this.handleFullscreen, this);
+    // Fullscreen is owned by the BROWSER on the game's parent element (RESIZE
+    // scale mode), so Phaser re-measures to the real screen size and every scene
+    // relayouts. (Phaser's own scale.startFullscreen only fullscreens the canvas
+    // and leaves the game size unchanged, so only the covering background fit.)
+    document.addEventListener("fullscreenchange", this.fsChangeHandler);
+    document.addEventListener("webkitfullscreenchange", this.fsChangeHandler);
 
     const menu = this.add.image(0, 0, "ui-menu").setName("menu").setAlpha(0.75).setDepth(ZOrder.UI);
     setInteractive(menu, this.input);
@@ -52,11 +57,7 @@ export class UIScene extends Phaser.Scene {
     setInteractive(fullscreen, this.input);
     fullscreen.on(Phaser.Input.Events.POINTER_OVER, () => fullscreen.setAlpha(1.0));
     fullscreen.on(Phaser.Input.Events.POINTER_OUT, () => fullscreen.setAlpha(0.75));
-    fullscreen.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      // Toggle on the actual state so it always exits fullscreen when in it.
-      if (this.scale.isFullscreen) this.scale.stopFullscreen();
-      else this.scale.startFullscreen();
-    });
+    fullscreen.on(Phaser.Input.Events.POINTER_DOWN, () => this.toggleFullscreen());
 
     const audio = this.add.image(0, 0, "ui-audio").setName("audio").setAlpha(0.75).setDepth(ZOrder.UI);
     setInteractive(audio, this.input);
@@ -74,7 +75,7 @@ export class UIScene extends Phaser.Scene {
       this.scoreText = this.add
         .text(0, 0, "0", { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
         .setOrigin(0.5)
-        .setRTL(true)
+        .setRTL(isRTL())
         .setDepth(ZOrder.UI);
     }
 
@@ -146,8 +147,8 @@ export class UIScene extends Phaser.Scene {
   }
 
   onShutdown() {
-    this.scale.off(Phaser.Scale.Events.ENTER_FULLSCREEN, this.handleFullscreen, this);
-    this.scale.off(Phaser.Scale.Events.LEAVE_FULLSCREEN, this.handleFullscreen, this);
+    document.removeEventListener("fullscreenchange", this.fsChangeHandler);
+    document.removeEventListener("webkitfullscreenchange", this.fsChangeHandler);
     if (this.responsiveHandler) {
       this.responsiveHandler.destroy();
       delete this.responsiveHandler;
@@ -155,14 +156,37 @@ export class UIScene extends Phaser.Scene {
     this.lastScore = -1;
   }
 
-  handleFullscreen() {
-    const fullscreen = this.children.getByName("fullscreen") as Phaser.GameObjects.Image;
-    if (!fullscreen) return;
-    fullscreen.setTexture(this.scale.isFullscreen ? "ui-fullscreen-exit" : "ui-fullscreen");
-    // Re-run every scene's layout against the new size so panels (e.g. the Start
-    // screen) fill the fullscreen.
-    this.scale.refresh();
+  private isFullscreen() {
+    return !!(document.fullscreenElement || (document as any).webkitFullscreenElement) || this.scale.isFullscreen;
   }
+
+  // Request browser fullscreen on the game's PARENT element so Phaser's RESIZE
+  // mode re-measures to the full screen (the canvas + parent both fill it).
+  private toggleFullscreen() {
+    const doc = document as any;
+    if (this.isFullscreen()) {
+      (document.exitFullscreen || doc.webkitExitFullscreen)?.call(document);
+      return;
+    }
+    const el = (this.game.canvas.parentElement || document.getElementById("game-container")) as any;
+    const req = el && (el.requestFullscreen || el.webkitRequestFullscreen);
+    if (req) {
+      Promise.resolve(req.call(el)).catch(() => this.scale.startFullscreen());
+    } else {
+      // Fallback for browsers without the element Fullscreen API.
+      this.scale.startFullscreen();
+    }
+  }
+
+  // Bound once so add/removeEventListener match. Fires on real fullscreen change.
+  private fsChangeHandler = () => {
+    const fullscreen = this.children.getByName("fullscreen") as Phaser.GameObjects.Image;
+    if (fullscreen) fullscreen.setTexture(this.isFullscreen() ? "ui-fullscreen-exit" : "ui-fullscreen");
+    // Re-measure the parent (now screen-sized) and re-emit RESIZE so every scene
+    // relayouts. A deferred second pass covers browsers that resize a tick late.
+    this.scale.refresh();
+    this.time.delayedCall(60, () => this.scale.refresh());
+  };
 
   handleResponsive() {
     if (!this.responsiveHandler) return;

@@ -2,7 +2,7 @@ import { Scene } from "phaser";
 import { ResponsiveHandler } from "@/libs/responsive";
 import { State } from "@/core/state";
 import { getGameData, getMode } from "@/core/data";
-import { LANG } from "@/config/lang";
+import { LANG, isRTL, scorePair } from "@/config/lang";
 import { FONT_FAMILY } from "@/config/text";
 import { ZOrder } from "@/config/zorder";
 import { FEEDBACK } from "@/config/colors";
@@ -10,7 +10,6 @@ import { THEME } from "@/config/theme";
 import { fitScreen } from "@/utils/responsive";
 import { fitText } from "@/utils/layout";
 import { setInteractive } from "@/utils/interactive";
-import { arabicNum } from "@/utils/arabic";
 import { AnimationManager } from "@/libs/animation";
 
 // Results shown on a real notepad on the wood desk (matching the theme).
@@ -49,20 +48,18 @@ export class CompleteScene extends Scene {
     this.header = this.add
       .text(0, 0, LANG.COMPLETE_HEADER, { fontFamily: FONT_FAMILY.BOLD, color: "#2a2a2a" })
       .setOrigin(0.5)
-      .setRTL(true);
+      .setRTL(isRTL());
     const total = getGameData().questions.length;
     // Quiz mode shows "score / total"; reveal mode shows a "done" message.
-    // NOTE: the Canvas renderer only paints the Arabic font when the Text is RTL;
-    // RTL reverses token order, so operands are written total-first to show as
-    // "score / total".
+    // scorePair() orders the operands correctly for the active direction.
     const scoreLabel =
       getMode(getGameData()) === "quiz"
-        ? `${arabicNum(total)} / ${arabicNum(State.score)}`
+        ? scorePair(State.score, total)
         : LANG.COMPLETE_DONE;
     this.scoreText = this.add
       .text(0, 0, scoreLabel, { fontFamily: FONT_FAMILY.BOLD, color: "#1c7a45", align: "center" })
       .setOrigin(0.5)
-      .setRTL(true);
+      .setRTL(isRTL());
     this.panel.add([this.header, this.scoreText]);
 
     this.button = this.add.container(0, 0);
@@ -70,7 +67,7 @@ export class CompleteScene extends Scene {
     this.buttonText = this.add
       .text(0, 0, LANG.COMPLETE_RESTART, { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
       .setOrigin(0.5)
-      .setRTL(true);
+      .setRTL(isRTL());
     this.button.add([this.buttonBg, this.buttonText]);
     this.panel.add(this.button);
     setInteractive(this.button, this.input);
@@ -93,7 +90,7 @@ export class CompleteScene extends Scene {
 
     // 2) Hide the pieces that will animate in after the popup lands.
     this.button.setScale(0).setAlpha(0);
-    if (isQuiz) this.scoreText.setText(`${arabicNum(total)} / ${arabicNum(0)}`);
+    if (isQuiz) this.scoreText.setText(scorePair(0, total));
 
     // 3) Popup entrance, then the celebration / commiseration sequence.
     this.anim.showPopup(this.panel, { sfx: "sfx-open" }).then(() => {
@@ -103,7 +100,7 @@ export class CompleteScene extends Scene {
       if (isQuiz) {
         this.time.delayedCall(200, () =>
           this.anim.countUp(this.scoreText, State.score, {
-            format: (n) => `${arabicNum(total)} / ${arabicNum(n)}`,
+            format: (n) => scorePair(n, total),
           })
         );
       } else {

@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { LANG } from "@/config/lang";
+import { LANG, setLanguage } from "@/config/lang";
 import { FONT_FAMILY } from "@/config/text";
 import { SKIN_FILES, DEFAULT_SKIN, skinPathFor } from "@/config/skin";
 import { collectImagePaths, setGameData, type GameData } from "@/core/data";
@@ -88,6 +88,9 @@ export class LoadingScene extends Scene {
 
     const data = this.cache.json.get("gamedata") as GameData;
     setGameData(data);
+    // Switch UI language / direction as soon as data lands, before any later
+    // scene (Grid, Title, ...) builds its text.
+    setLanguage(data.lang);
 
     // Phase 2: skin assets (selected by data.json) + every referenced image.
     const skin = data.skin || DEFAULT_SKIN;

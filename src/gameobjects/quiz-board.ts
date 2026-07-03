@@ -1,6 +1,7 @@
 import { getGameData, isCorrectChoice, type Choice, type Question } from "@/core/data";
 import { State } from "@/core/state";
 import { ChoiceButton } from "@/gameobjects/choice-button";
+import { isRTL } from "@/config/lang";
 import { TEXT_COLORS } from "@/config/colors";
 import { CRUMBLE } from "@/config/theme";
 import { ZOrder } from "@/config/zorder";
@@ -85,9 +86,11 @@ export class QuizBoard {
       const c = i % cols;
       const itemsInRow = r === rows - 1 ? n - cols * (rows - 1) : cols;
       const rowW = itemsInRow * cellW + (itemsInRow - 1) * gapX;
-      // RTL: first choice on the right of its row.
-      const startX = rect.cx + rowW / 2 - cellW / 2;
-      const x = startX - c * (cellW + gapX);
+      // First choice sits on the leading edge for the language: right for RTL,
+      // left for LTR (English).
+      const x = isRTL()
+        ? rect.cx + rowW / 2 - cellW / 2 - c * (cellW + gapX)
+        : rect.cx - rowW / 2 + cellW / 2 + c * (cellW + gapX);
       const y = rect.cy - rect.h / 2 + cellH / 2 + r * (cellH + gapY);
       button.setPosition(x, y);
       button.layout(cardW, cardH);

@@ -27,6 +27,9 @@ export function questionImages(q: Question): string[] {
 
 export interface GameData {
   title: string;
+  // UI language / text direction: "ar" → right-to-left (default), "en" → left-to-right.
+  // Only affects the built-in UI chrome and digits; question content is used verbatim.
+  lang?: "ar" | "en";
   // "reveal" = open a box to reveal its item (like Wordwall's Open the Box).
   // "quiz"   = open a box to answer a multiple-choice question.
   mode?: "reveal" | "quiz";
