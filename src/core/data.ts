@@ -37,10 +37,11 @@ export interface GameData {
   timerSeconds?: number;
   // Visual skin folder name under public/assets/skins (defaults to DEFAULT_SKIN).
   skin?: string;
-  // Visual design set. "notebook" = the original paper "Open the Box" art (from
-  // files); "candy" = an alternate sweet-shop design generated in code. A
-  // ?theme= URL param overrides this so both can be compared without editing data.
-  theme?: "notebook" | "candy";
+  // Visual design set. "notebook" = the original paper "Open the Box" art;
+  // "candy" = a sweet-shop design generated in code; "classroom" = a chalkboard /
+  // slate design built from real photo assets. A ?theme= URL param overrides this
+  // so the designs can be compared without editing data.
+  theme?: "notebook" | "candy" | "classroom";
   questions: Question[];
 }
 

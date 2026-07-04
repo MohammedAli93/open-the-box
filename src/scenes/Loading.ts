@@ -7,6 +7,8 @@ import { State } from "@/core/state";
 import { loadConfig } from "@/utils/config";
 import { padArabic } from "@/utils/layout";
 import { generateCandyTheme } from "@/libs/candy-theme";
+import { loadClassroomTheme } from "@/libs/classroom-theme";
+import { setThemeStyle } from "@/config/theme-style";
 
 export class LoadingScene extends Scene {
   private barBg!: Phaser.GameObjects.Graphics;
@@ -121,6 +123,12 @@ export class LoadingScene extends Scene {
       this.cameras.main.setBackgroundColor(this.loadingBg);
       this.label.setColor("#8a3d69");
       generateCandyTheme(this);
+    } else if (theme === "classroom") {
+      this.loadingBg = "#2f3130";
+      this.cameras.main.setBackgroundColor(this.loadingBg);
+      this.label.setColor("#f4f1e9");
+      setThemeStyle({ number: "#f4f1e9" }); // white chalk number on the dark slates
+      loadClassroomTheme(this);
     } else {
       this.loadNotebookTheme();
     }

@@ -59,25 +59,32 @@ autoplay policy).
 
 ## Design versions (`theme`)
 
-There are **two complete visual designs**, switchable without any code change:
+There are **three complete visual designs**, switchable without any code change:
 
 - **`"notebook"`** (default) — the original paper "Open the Box" look: wood desk,
   spiral-bound pads, pencils/headphone props. Loaded from image files.
-- **`"candy"`** — an alternate sweet-shop design: pastel sprinkled backdrop,
-  glossy gumdrop boxes with number medallions, candy answer cards, and lollipop /
-  donut / candy-cane props. It is generated **entirely in code** (no art files) —
-  see `src/libs/candy-theme.ts`.
+- **`"candy"`** — a sweet-shop design: pastel sprinkled backdrop, glossy gumdrop
+  boxes with number medallions, candy answer cards, and lollipop / donut props.
+  Generated **entirely in code** (no art files) — see `src/libs/candy-theme.ts`.
+- **`"classroom"`** — a realistic chalkboard design built from **real photo
+  assets**: a real chalkboard backdrop, boxes as chalkboard **slates** in painted
+  colour-coded wooden frames (composited from the real chalkboard + wood photos),
+  white chalk numbers, and the real school props (pencils, eraser, headphones,
+  paper). See `src/libs/classroom-theme.ts`. The only new asset is
+  `public/assets/classroom/chalkboard.webp` (see `CREDITS.md`); everything else
+  reuses the real assets already in the repo.
 
-Pick one with the `"theme"` field in `data.json`. To **compare the two live**
+Pick one with the `"theme"` field in `data.json`. To **compare them live**
 without editing the file, append a URL query — it overrides `data.json`:
 
 ```
 http://localhost:3000/?theme=notebook
 http://localhost:3000/?theme=candy
+http://localhost:3000/?theme=classroom
 ```
 
-Both designs share identical gameplay, motion, timer, sound and data — only the
-art changes, so questions authored once work in either version.
+All designs share identical gameplay, motion, timer, sound and data — only the
+art changes, so questions authored once work in every version.
 
 ## Visual skins
 

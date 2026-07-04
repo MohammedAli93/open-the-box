@@ -1,4 +1,5 @@
 import { THEME, PAD_CYCLE, coverKey } from "@/config/theme";
+import { themeStyle } from "@/config/theme-style";
 import { FONT_FAMILY } from "@/config/text";
 import { WORD_COLOR } from "@/config/colors";
 import { isRTL, locNum } from "@/config/lang";
@@ -55,7 +56,7 @@ export class Box extends Phaser.GameObjects.Container {
     this.content = scene.add.container(0, 0);
     this.coverImg = scene.add.image(0, 0, coverKey(color)).setOrigin(0.5, 0);
     this.label = scene.add
-      .text(0, 0, locNum(config.index + 1), { fontFamily: FONT_FAMILY.BOLD, color: "#2a2a2a" })
+      .text(0, 0, locNum(config.index + 1), { fontFamily: FONT_FAMILY.BOLD, color: themeStyle.number })
       .setOrigin(0.5)
       .setRTL(isRTL());
     this.cover = scene.add.container(0, 0, [this.coverImg, this.label]);
