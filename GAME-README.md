@@ -22,6 +22,7 @@ it directly (no rebuild needed in dev; for production just replace the file in
 {
   "title": "...",
   "timerSeconds": 20,        // per-question countdown; 0 or omit to disable
+  "theme": "candy",          // DESIGN VERSION: "notebook" (paper) or "candy" (sweet-shop). See below.
   "skin": "notebook",        // "notebook" or "wordwall" (folder in assets/skins)
   "questions": [
     {
@@ -55,6 +56,28 @@ Looping background music (`public/assets/audio/bgm/background-music.ogg`) plus
 answer SFX. The sound button (top-left) toggles **both** music and effects, and
 the choice is saved to `localStorage`. Music starts on the first tap (browser
 autoplay policy).
+
+## Design versions (`theme`)
+
+There are **two complete visual designs**, switchable without any code change:
+
+- **`"notebook"`** (default) — the original paper "Open the Box" look: wood desk,
+  spiral-bound pads, pencils/headphone props. Loaded from image files.
+- **`"candy"`** — an alternate sweet-shop design: pastel sprinkled backdrop,
+  glossy gumdrop boxes with number medallions, candy answer cards, and lollipop /
+  donut / candy-cane props. It is generated **entirely in code** (no art files) —
+  see `src/libs/candy-theme.ts`.
+
+Pick one with the `"theme"` field in `data.json`. To **compare the two live**
+without editing the file, append a URL query — it overrides `data.json`:
+
+```
+http://localhost:3000/?theme=notebook
+http://localhost:3000/?theme=candy
+```
+
+Both designs share identical gameplay, motion, timer, sound and data — only the
+art changes, so questions authored once work in either version.
 
 ## Visual skins
 

@@ -6,11 +6,13 @@ import { collectImagePaths, setGameData, type GameData } from "@/core/data";
 import { State } from "@/core/state";
 import { loadConfig } from "@/utils/config";
 import { padArabic } from "@/utils/layout";
+import { generateCandyTheme } from "@/libs/candy-theme";
 
 export class LoadingScene extends Scene {
   private barBg!: Phaser.GameObjects.Graphics;
   private bar!: Phaser.GameObjects.Graphics;
   private label!: Phaser.GameObjects.Text;
+  private loadingBg = "#b8895a"; // wood; candy overrides to pink in applyTheme()
 
   constructor() {
     super("Loading");
@@ -42,24 +44,9 @@ export class LoadingScene extends Scene {
     this.load.image("notepad", "ui/notepad.png");
     this.load.image("note-card", "ui/note-card.png");
 
-    // Real "Open the Box" theme assets.
-    this.load.setPath("assets/theme");
-    this.load.image("th-wood", "wood.webp");
-    ["blue", "green", "red", "white"].forEach((c) => this.load.image(`th-pad-${c}`, `pad-${c}.webp`));
-    this.load.image("th-rings", "rings.webp");
-    ["blue", "red", "green", "grey"].forEach((c) => this.load.image(`th-cover-${c}`, `cover-${c}.png`));
-    this.load.image("th-lock", "lock.webp");
-    this.load.image("th-cross", "cross.png");
-    this.load.spritesheet("th-crumble", "crumble.webp", { frameWidth: 200, frameHeight: 154 });
-    ["deco-pencil", "deco-pencil2", "deco-pen", "deco-rubber", "deco-sheet"].forEach((d) =>
-      this.load.image(`th-${d}`, `${d}.webp`)
-    );
-    this.load.image("th-deco-headphone", "deco-headphone.webp");
-
-    // Answer-choice paper faces (randomised per card).
-    this.load.setPath("new");
-    this.load.image("answer-paper-a", "squaretilefacefront2.2omlhykjxvfoqykwnjknhaq2.png");
-    this.load.image("answer-paper-b", "squaretilefacefront3.2u7ckjjvlm11jno7hutjcfw2.png");
+    // Theme-specific art (th-*, answer-paper-*) is deferred to create(), once
+    // data.json has told us which design to use — notebook (files) or candy
+    // (generated in code). See applyTheme().
 
     // UI icons (from the previous game), used bottom-corner like the source.
     this.load.setPath("assets/ui");
@@ -92,6 +79,9 @@ export class LoadingScene extends Scene {
     // scene (Grid, Title, ...) builds its text.
     setLanguage(data.lang);
 
+    // Pick the visual design (candy generates its art here; notebook queues files).
+    this.applyTheme(data);
+
     // Phase 2: skin assets (selected by data.json) + every referenced image.
     const skin = data.skin || DEFAULT_SKIN;
     for (const key of Object.keys(SKIN_FILES)) {
@@ -120,6 +110,44 @@ export class LoadingScene extends Scene {
     this.cameras.main.fadeIn(300);
   }
 
+  // Selects the visual design. A ?theme= URL param wins over data.json so the two
+  // designs can be compared without editing the file. "candy" is generated in
+  // code (no files); "notebook" (default) queues the original art onto the loader.
+  private applyTheme(data: GameData) {
+    const urlTheme = new URLSearchParams(window.location.search).get("theme");
+    const theme = urlTheme || data.theme || "notebook";
+    if (theme === "candy") {
+      this.loadingBg = "#ffd7ea";
+      this.cameras.main.setBackgroundColor(this.loadingBg);
+      this.label.setColor("#8a3d69");
+      generateCandyTheme(this);
+    } else {
+      this.loadNotebookTheme();
+    }
+  }
+
+  // Original paper "Open the Box" art, loaded from files.
+  private loadNotebookTheme() {
+    this.load.setPath("assets/theme");
+    this.load.image("th-wood", "wood.webp");
+    ["blue", "green", "red", "white"].forEach((c) => this.load.image(`th-pad-${c}`, `pad-${c}.webp`));
+    this.load.image("th-rings", "rings.webp");
+    ["blue", "red", "green", "grey"].forEach((c) => this.load.image(`th-cover-${c}`, `cover-${c}.png`));
+    this.load.image("th-lock", "lock.webp");
+    this.load.image("th-cross", "cross.png");
+    this.load.spritesheet("th-crumble", "crumble.webp", { frameWidth: 200, frameHeight: 154 });
+    ["deco-pencil", "deco-pencil2", "deco-pen", "deco-rubber", "deco-sheet"].forEach((d) =>
+      this.load.image(`th-${d}`, `${d}.webp`)
+    );
+    this.load.image("th-deco-headphone", "deco-headphone.webp");
+
+    // Answer-choice paper faces (randomised per card).
+    this.load.setPath("new");
+    this.load.image("answer-paper-a", "squaretilefacefront2.2omlhykjxvfoqykwnjknhaq2.png");
+    this.load.image("answer-paper-b", "squaretilefacefront3.2u7ckjjvlm11jno7hutjcfw2.png");
+    this.load.setPath();
+  }
+
   private drawStatic() {
     const { width, height } = this.scale;
     if (!this.barBg) {
@@ -129,7 +157,7 @@ export class LoadingScene extends Scene {
         .text(0, 0, LANG.LOADING, { fontFamily: FONT_FAMILY.BOLD, color: "#ffffff" })
         .setOrigin(0.5);
     }
-    this.cameras.main.setBackgroundColor("#b8895a");
+    this.cameras.main.setBackgroundColor(this.loadingBg);
     this.label.setFontSize(Math.max(20, Math.round(height * 0.04)));
     padArabic(this.label);
     this.label.setPosition(width / 2, height / 2 - height * 0.08);

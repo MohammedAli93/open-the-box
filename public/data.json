@@ -4,6 +4,7 @@
   "mode": "quiz",
   "timerSeconds": 30,
   "skin": "notebook",
+  "theme": "candy",
   "questions": [
     {
       "type": "text",
